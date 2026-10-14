@@ -163,6 +163,7 @@ venv.bak/
 peticiones.py
 prueba.py
 module_test.py
+variables_entorno.py
 
 # Spyder project settings
 .spyderproject
