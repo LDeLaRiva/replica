@@ -160,7 +160,9 @@ ENV/
 env.bak/
 venv.bak/
 
-
+peticiones.py
+prueba.py
+module_test.py
 
 # Spyder project settings
 .spyderproject
