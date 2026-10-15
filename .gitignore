@@ -164,7 +164,7 @@ src/peticiones.py
 
 src/module_test.py
 src/variables_entorno.py
-src/pruebas.py
+src/prueba.py
 
 # Spyder project settings
 .spyderproject
