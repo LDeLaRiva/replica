@@ -1,12 +1,13 @@
 import os
 import requests
 from dotenv import load_dotenv
+from cprint import cprint
+from contraste import *
 
 load_dotenv()
 
 
-def obtener_dato_de_prueba(pregunta):
-   
+def armar_peticion(pregunta):
     api_key_gemini = os.getenv("AI_API_KEY")
     modelo = os.getenv("AI_MODEL")
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{modelo}:generateContent"
@@ -16,14 +17,25 @@ def obtener_dato_de_prueba(pregunta):
             {"parts": [{"text": pregunta}]}
         ]
     }
+    return url, headers, body
 
+
+def enviar_peticion(url, headers, body):
     respuesta = requests.post(url, headers=headers, json=body)
-    #print(respuesta.status_code)
-    #print(respuesta.text)
-    datos = respuesta.json()
+    return respuesta.json()
+
+
+def extraer_texto(datos):
     return datos["candidates"][0]["content"]["parts"][0]["text"]
 
 
-respuesta_gemini = (obtener_dato_de_prueba("explicame que es json en 20 palabras"))
+def obtener_dato_de_prueba(pregunta):
+    url, headers, body = armar_peticion(pregunta)
+    datos = enviar_peticion(url, headers, body)
+    return extraer_texto(datos)
 
-print(f"La respuesta de Gemini es:\n{respuesta_gemini}")
+
+if __name__ == "__main__":
+    respuesta_gemini = obtener_dato_de_prueba("explicame que es json en 20 palabras")
+    print(f"\nLa respuesta de Gemini es:\n{respuesta_gemini}")
+    salfn(f"\nLa respuesta de Gemini es:\n{respuesta_gemini}")
