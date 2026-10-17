@@ -9,6 +9,8 @@
 #   bn         barra de color al inicio, con negrita
 #   f          fondo suave
 #   fn         fondo suave, con negrita
+import shutil
+import textwrap
 
 RESET = "\033[0m"
 
@@ -48,20 +50,29 @@ def color(texto, tono="verde", negrita=True):
     for linea in str(texto).split("\n"):
         print(f"{estilo}{linea}{RESET}" if linea.strip() else "")
 
-
 def barra(texto, tono="verde", negrita=True):
-    """Barra de color al inicio de cada línea, área mínima."""
+    """Barra de color al inicio de cada línea, también en las que se parten."""
     oscuro, _ = TONOS[tono]
     marca = f"{_fondo(oscuro)}   {RESET}"
     estilo = _texto(oscuro, negrita)
-    for linea in str(texto).split("\n"):
-        print(f"{marca} {estilo}{linea}{RESET}" if linea.strip() else "")
-
+    ancho = max(shutil.get_terminal_size((80, 20)).columns - 5, 20)
+    for parrafo in str(texto).split("\n"):
+        if not parrafo.strip():
+            print()
+            continue
+        for linea in textwrap.wrap(parrafo, ancho):
+            print(f"{marca} {estilo}{linea}{RESET}")
 
 def caja(texto, tono="verde", negrita=True):
     """Fondo suave con texto oscuro del mismo tono, parejo de los dos lados."""
     oscuro, claro = TONOS[tono]
-    lineas = str(texto).split("\n")
+    disponible = max(shutil.get_terminal_size((80, 20)).columns - 4, 20)
+    lineas = []
+    for parrafo in str(texto).split("\n"):
+        if parrafo.strip():
+            lineas.extend(textwrap.wrap(parrafo, disponible))
+        else:
+            lineas.append("")
     ancho = max([len(l) for l in lineas], default=0)
     estilo = f"{_fondo(claro)}{_texto(oscuro, negrita)}"
     for linea in lineas:

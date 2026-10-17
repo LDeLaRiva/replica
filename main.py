@@ -3,4 +3,4 @@ from src.contraste import *
 
 respuesta_gemini = obtener_dato_de_prueba("¿Cuál es la capital de Inglaterra?")
 
-salbn(f"\nLa respuesta de Gemini es:\n{respuesta_gemini}")
+titulobn(f"\nLa respuesta de Gemini es:\n{respuesta_gemini}")

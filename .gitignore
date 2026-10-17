@@ -167,6 +167,9 @@ src/variables_entorno.py
 src/prueba.py
 src/salida.py
 src/monolitico.py
+src/peticiones.py
+
+evidencias/
 
 # Spyder project settings
 .spyderproject
