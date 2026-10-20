@@ -23,11 +23,46 @@ load_dotenv()
 # caracteres, un finiquito 2.900 y un contrato con su anexo 7.600. El peor
 # caso, dos contratos para comparar, dio 11.984. Los 15.000 lo cubren con
 # margen y siguen evitando que alguien pegue un documento de cien páginas.
-LARGO_MAXIMO = 15000
+LARGO_MAXIMO = 15000  #prueba 
+
  
 MENSAJE_GENERICO = ("No pudimos completar tu consulta. Intenta nuevamente en unos minutos.")
 
 INSTRUCCION = "Responde siempre en idioma español."
+
+#precios para gemini-3.5-flash-lite
+PRECIO_ENTRADA = 0.30 / 1_000_000
+PRECIO_SALIDA = 2.50 / 1_000_000
+
+def calcular_costo_peticion(datos, precio_entrada, precio_salida):
+    """Calcula el costo en dólares de una petición, según sus tokens.
+
+    Args:
+        datos: la respuesta del servicio, ya convertida en diccionario.
+        precio_entrada: precio en dólares por cada token enviado.
+        precio_salida: precio en dólares por cada token generado.
+
+    Returns:
+        El costo de esa petición en dólares.
+
+    Raises:
+        RuntimeError: si la respuesta no trae el bloque usageMetadata o le
+            falta alguno de los dos conteos de tokens.
+    """
+    try:
+        uso = datos["usageMetadata"]
+        tokens_entrada = uso["promptTokenCount"]
+        tokens_salida = uso["candidatesTokenCount"]
+    except KeyError as fallo:
+        raise RuntimeError(
+            f"{MENSAJE_GENERICO}\n"
+            f"[técnico] KeyError. Falta el campo {fallo} para el costo.")
+    except TypeError as fallo:
+        raise RuntimeError(
+            f"{MENSAJE_GENERICO}\n"
+            f"[técnico] TypeError. {fallo}")
+
+    return (tokens_entrada * precio_entrada) + (tokens_salida * precio_salida)
  
  
 def armar_peticion(pregunta):
@@ -68,8 +103,7 @@ def armar_peticion(pregunta):
             f"{MENSAJE_GENERICO}\n"
             "[técnico] Falta AI_MODEL en el .env")
  
-    url = ("https://generativelanguage.googleapis.com/v1beta/models/"
-           f"{modelo}:generateContent")
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{modelo}:generateContent"
     # La credencial va en el header y no en la url. Si fuera parte de la
     # url aparecería completa en el mensaje de cualquier error de conexión.
     headers = {"x-goog-api-key": api_key_gemini}
@@ -191,7 +225,8 @@ def obtener_dato_de_prueba(pregunta):
     """
     url, headers, body = armar_peticion(pregunta)
     datos = enviar_peticion(url, headers, body)
-    return extraer_texto(datos)
+    costo = calcular_costo_peticion(datos, PRECIO_ENTRADA, PRECIO_SALIDA)
+    return extraer_texto(datos), costo, datos["usageMetadata"]
  
  
 if __name__ == "__main__":
@@ -206,17 +241,25 @@ if __name__ == "__main__":
     # atrapar Exception dentro de una función taparía errores de
     # programación míos justo donde necesito verlos.
     try:
-        respuesta_gemini = obtener_dato_de_prueba(
-            "explicame que es json en 20 palabras")
+        respuesta_gemini, costo, uso = obtener_dato_de_prueba(
+            "explicame que es json en 2 lineas ")
         salbn(f"\nLa respuesta de Gemini es:\n{respuesta_gemini}")
+        titulobn(f"\nCosto estimado de la petición: {costo:.8f} USD")
+
+        # Los tokens y el costo son información de desarrollo (igual que
+        # la línea [técnico]). Cuando se separe lo que ve el usuario, estos
+        # tres van con el lado técnico.
+        exitobn(f"\nTokens entrada    {uso['promptTokenCount']}")
+        exitobn(f"Tokens salida     {uso['candidatesTokenCount']}")
+        exitobn(f"Total tokens      {uso['totalTokenCount']}")
  
     except (ValueError, RuntimeError) as fallo:
         # El mensaje trae las dos partes juntas, la del usuario y el
         # detalle marcado con [técnico]. Hoy se imprimen las dos porque
         # es una simulación en terminal. Más adelante se definirá cómo se
         # muestra cada parte por separado.
-        exitofn(f"\n{fallo}")
+        avisofn(f"\n{fallo}")
  
     except Exception as fallo:
-        salbn(f"\nError inesperado. {type(fallo).__name__}")
-        exitofn(fallo)
+        errorfn(f"\nError inesperado. {type(fallo).__name__}")
+        avisofn(f"\n{fallo}")
