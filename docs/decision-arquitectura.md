@@ -31,7 +31,7 @@ por presupuesto y no por falta de mérito técnico.
 - **[Diagrama de arquitectura](#diagrama-de-arquitectura)**
 - **[Comparación de candidatos](#comparación-de-candidatos)**
   - [Cómo se seleccionaron los candidatos](#cómo-se-seleccionaron-los-candidatos)
-  - [De dónde sale cada dato](#de-dónde-sale-cada-dato)
+  - [Origen de cada dato](#origen-de-cada-dato)
   - [Preguntas de prueba usadas](#preguntas-de-prueba-usadas)
   - [Escala de calidad](#escala-de-calidad)
   - [Cómo se mide la variabilidad](#cómo-se-mide-la-variabilidad)
@@ -71,7 +71,8 @@ por presupuesto y no por falta de mérito técnico.
 El diagrama corresponde al mismo módulo medido en este documento. El modelo se
 configura en la variable `AI_MODEL` del archivo `.env`, de modo que probar otro
 candidato no obliga a reescribir ninguna función. Sí exige actualizar las dos
-constantes de precio del módulo, porque cada modelo cobra distinto. 
+constantes de precio del módulo, porque cada modelo cobra distinto. Dejar esos
+precios atados al modelo es una mejora pendiente.
  
 ---
  
@@ -79,9 +80,9 @@ constantes de precio del módulo, porque cada modelo cobra distinto.
  
 ### Cómo se seleccionaron los candidatos
  
-No se compararon dos modelos elegidos de antemano. Se partió del catálogo
-completo que entrega la API para esta credencial y se fue descartando con
-criterios explícitos.
+No se compararon dos modelos elegidos de antemano. Se tomó como punto de
+partida el catálogo completo que entrega la API para esta credencial sobre el que se aplicaron
+sucesivos criterios de descarte.
  
 | Filtro aplicado | Qué quedó fuera |
 |---|---|
@@ -95,7 +96,7 @@ Los dos modelos que superaron todos los filtros son **Gemini 3.5 Flash-Lite** y
 **Gemini 3.1 Flash-Lite**, y son los que se comparan en detalle. El resto está
 documentado en la sección de alternativas descartadas.
  
-### De dónde sale cada dato
+### Origen de cada dato
  
 | Dato | Origen |
 |---|---|
@@ -111,9 +112,9 @@ El precio es el único dato que no generé yo. Todo lo demás proviene de
 mediciones propias.
  
 Las mediciones de latencia se hicieron con la función `medir_latencia`, que
-llama a las mismas funciones del módulo que usa la aplicación. Los tiempos son
-entonces los que la miniaplicación experimenta de verdad, no los de un script
-de prueba independiente.
+llama a las mismas funciones del módulo que usa la aplicación. Los tiempos corresponden
+entonces a los que la miniaplicación experimenta efectivamente, y no a los de
+un script de prueba independiente.
  
 Esa función no aparece en el diagrama de arquitectura porque no forma parte de
 la aplicación. Es una herramienta de medición, se usó para producir los datos
@@ -158,9 +159,9 @@ Cada respuesta recibe tres notas independientes, de 1 a 3.
 ### Cómo se mide la variabilidad
  
 La latencia promedio por sí sola no describe bien a un modelo. Dos modelos
-pueden promediar lo mismo y comportarse de forma muy distinta, uno respondiendo
-siempre en un tiempo parecido y el otro saltando entre tiempos muy cortos y muy
-largos.
+pueden promediar lo mismo y comportarse de manera opuesta, uno respondiendo
+siempre en un tiempo semejante y el otro alternando entre extremos muy
+distantes entre sí.
  
 Para capturar eso se usa la **variabilidad**, que es la desviación estándar de
 las diez mediciones dividida por su promedio, expresada en porcentaje. En
@@ -202,7 +203,7 @@ pierde validez como evidencia a medida que pasen los meses.*
  
 ### Qué se observó en cada pregunta
  
-**P1 · ambos quedaron parejos y ambos fallaron.** Los dos atribuyeron al
+**P1 · resultados equivalentes, y ambos con fallas.** Los dos atribuyeron al
 artículo 67 contenido de otros artículos, y cada uno inventó un dato.
  
 | | Artículos ajenos que incorporó | Dato inventado |
@@ -213,7 +214,7 @@ artículo 67 contenido de otros artículos, y cada uno inventó un dato.
 Ninguno de los dos mencionó los veinte días hábiles que el propio artículo 67
 concede en Magallanes, Aysén y la provincia de Palena.
  
-**P2 · aquí se separaron.** Gemini 3.5 Flash-Lite reconoció que "necesidades de
+**P2 · aquí se produjo la diferencia.** Gemini 3.5 Flash-Lite reconoció que "necesidades de
 la empresa" es terminología del Código del Trabajo chileno, lo declaró
 explícitamente y resolvió el caso completo. Sus once afirmaciones sustantivas son
 correctas contra el texto de los artículos 161, 162, 163, 172, 73 y 177. El
@@ -230,7 +231,7 @@ Flash-Lite, que en las preguntas 1 y 3 sí identificó Chile correctamente, aqu�
 no lo hizo. Su criterio en esta materia es inconsistente entre una consulta y
 otra.
  
-**P3 · ambos la resolvieron bien.** Los dos rechazaron la premisa falsa, dieron
+**P3 · ambos la resolvieron correctamente.** Los dos rechazaron la premisa falsa, dieron
 el plazo correcto de diez días hábiles del artículo 177 y agregaron el derecho a
 formular reserva de derechos, que el artículo 162 contempla expresamente.
 Gemini 3.1 Flash-Lite estuvo levemente mejor, porque citó el número del artículo
@@ -256,7 +257,7 @@ Una respuesta legal inventada no es una respuesta peor, es una respuesta
 dañina. Por eso la calidad, y en particular el atributo de no alucinar, pesa
 más que todo lo demás.
  
-La latencia importa y conviene no restarle peso a la ligera. El problema medido
+La latencia importa y no debe subestimarse. El problema medido
 no es que un modelo sea algo más lento, es que uno de los dos tarda entre 1,76 y
 8,83 segundos sin que se pueda anticipar cuál extremo va a tocar, y una espera
 de casi nueve segundos frente a una pantalla en blanco se percibe como que la
@@ -328,7 +329,7 @@ Como observación adicional, en la pregunta que exige encadenar varias reglas,
 Gemini 3.5 Flash-Lite identificó correctamente la jurisdicción chilena y explicó
 las reglas aplicables sin error. Gemini 3.1 Flash-Lite explicó reglas de otro
 país. Como los cálculos los resuelve el propio código y no el modelo, lo que
-está en juego ahí no es la aritmética sino **qué marco legal se le explica al
+está en juego no es la aritmética sino **qué marco legal se le explica al
 usuario**, que es más grave. Ese dato refuerza la decisión pero no la determina,
 según se muestra en el análisis de sensibilidad anterior.
  
@@ -437,8 +438,8 @@ familias, no una condición pasajera de un modelo puntual.
 | Flash-Lite · 3.1, 3.5 | 15 | 500 |
 | Pro y Argon | 0 | 0 |
  
-Ninguna aplicación que atienda usuarios reales cabe en veinte peticiones
-diarias. Esto por sí solo deja a toda la familia Flash fuera del alcance de
+Ninguna aplicación que atienda usuarios reales puede operar con veinte
+peticiones diarias. Esto por sí solo deja a toda la familia Flash fuera del alcance de
 este proyecto mientras se mantenga en capa gratuita.
  
 ---
@@ -499,8 +500,8 @@ proveedor solo distinguen eso.
 **El techo de esta aplicación en capa gratuita.**
  
 Con Gemini 3.5 Flash-Lite la cuenta permite 15 peticiones por minuto y 500 por
-día. El tope diario es el que manda, porque 15 por minuto equivaldrían a 21.600
-diarias si se pudieran sostener.
+día. El límite determinante es el diario, porque 15 por minuto equivaldrían a 21.600
+diarias si pudieran sostenerse.
  
 | Escenario | Resultado |
 |---|---|
@@ -509,8 +510,8 @@ diarias si se pudieran sostener.
 | 30 personas en el mismo minuto | 15 atendidas, 15 reciben 429 |
 | 60 personas en el mismo minuto | 15 atendidas, 45 reciben 429 |
  
-El promedio diario puede estar holgado y una concentración puntual de consultas
-igual rechazar usuarios. Esto ya se observó desde el otro lado durante las
+El promedio diario puede resultar suficiente y, aun así, una concentración
+puntual de consultas producir rechazos. Esto ya se observó desde el otro lado durante las
 mediciones, cuando Gemini 3.8 Flash y Gemini 3.6 Flash devolvieron 503 con el
 mensaje "this model is currently experiencing high demand", es decir saturación
 del modelo por el conjunto de su demanda, no por la de esta cuenta.
@@ -525,7 +526,7 @@ del modelo por el conjunto de su demanda, no por la de esta cuenta.
 | Capa de pago | límites más altos, cuando el proyecto lo justifique |
  
 La caché es la de mayor impacto en este dominio, porque las consultas laborales
-se repiten mucho. Las preguntas sobre feriado anual, finiquito e indemnización
+presentan una alta tasa de repetición. Las preguntas sobre feriado anual, finiquito e indemnización
 concentran una fracción grande del total. Si la mitad de las consultas fueran
 repetidas, las 500 diarias se convertirían en 250 llamadas reales, duplicando
 la capacidad sin aumentar el gasto.
@@ -534,7 +535,7 @@ la capacidad sin aumentar el gasto.
  
 Un error 503 puede ocurrir con cualquier proveedor. Hoy la aplicación lo captura
 en el borde del programa y termina mostrando un mensaje entendible, en lugar de
-caerse con un rastro de error sin controlar, gracias al manejo de excepciones
+detenerse con una traza de error sin controlar, gracias al manejo de excepciones
 incorporado en la Unidad 1.3. Lo que todavía no hace es recuperarse sola. La
 mitigación siguiente, cuando el volumen lo justifique, es reintentar con espera
 exponencial, conocida como backoff exponencial.
