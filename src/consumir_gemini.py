@@ -32,8 +32,8 @@ MENSAJE_GENERICO = ("No pudimos completar tu consulta. Intenta nuevamente en uno
 INSTRUCCION = "Responde siempre en idioma español."
 
 #precios para gemini-3.5-flash-lite
-PRECIO_ENTRADA = 0.25 / 1_000_000
-PRECIO_SALIDA  = 1.50 / 1_000_000
+PRECIO_ENTRADA = 0.30 / 1_000_000
+PRECIO_SALIDA  = 2.50 / 1_000_000
 
 def calcular_costo_peticion(datos, precio_entrada, precio_salida):
     """Calcula el costo en dólares de una petición, según sus tokens.
@@ -285,8 +285,7 @@ if __name__ == "__main__":
     try:
         titulobn(f"\nAI_MODEL vale  ->  {os.getenv('AI_MODEL')}")
         respuesta_gemini, costo, uso = obtener_dato_de_prueba(
-            "¿Qué establece el artículo 67 del Código del Trabajo sobre el feriado anual?"
-        )
+            "explicame que es json en 2 lineas ")
         salbn(f"\nLa respuesta de Gemini es:\n{respuesta_gemini}")
         titulobn(f"\nCosto estimado de la petición: {costo:.8f} USD")
 

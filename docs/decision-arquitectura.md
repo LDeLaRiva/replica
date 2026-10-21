@@ -70,7 +70,7 @@ por presupuesto y no por falta de mérito técnico.
  
 El diagrama corresponde al mismo módulo medido en este documento. El modelo se
 configura en la variable `AI_MODEL` del archivo `.env`, por lo que cambiar de
-candidato no requiere tocar el código.
+candidato no requiere un ajuste del código.
  
 ---
  
