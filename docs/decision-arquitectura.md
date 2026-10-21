@@ -18,7 +18,7 @@ por presupuesto y no por falta de mérito técnico.
 > candidato alternativo, con una variabilidad de 15 % frente a 46 %, y
 > respondió en las 31 llamadas que se le hicieron.
 >
-> **Alcance de la evaluación** · 4 modelos de generación de texto medidos, más
+> **Alcance de la evaluación** · 4 modelos de generación de texto evaluados, más
 > la línea Pro y Gemini 4 Argon descartados por no estar disponibles en esta
 > cuenta. Más de 60 llamadas reales a la API entre el 20 y el 21 de octubre
 > de 2026.
@@ -69,8 +69,10 @@ por presupuesto y no por falta de mérito técnico.
 ![Arquitectura de la miniaplicación](diagrama_arquitectura.png)
  
 El diagrama corresponde al mismo módulo medido en este documento. El modelo se
-configura en la variable `AI_MODEL` del archivo `.env`, por lo que cambiar de
-candidato no requiere tocar el código.
+configura en la variable `AI_MODEL` del archivo `.env`, de modo que probar otro
+candidato no obliga a reescribir ninguna función. Sí exige actualizar las dos
+constantes de precio del módulo, porque cada modelo cobra distinto. Dejar esos
+precios atados al modelo es una mejora pendiente.
  
 ---
  
@@ -162,7 +164,8 @@ siempre en un tiempo parecido y el otro saltando entre tiempos muy cortos y muy
 largos.
  
 Para capturar eso se usa la **variabilidad**, que es la desviación estándar de
-las diez mediciones dividida por su promedio, expresada en porcentaje.
+las diez mediciones dividida por su promedio, expresada en porcentaje. En
+estadística se conoce como coeficiente de variación.
  
 | Variabilidad | Qué significa |
 |---|---|
@@ -182,11 +185,11 @@ un servicio poco confiable aunque el promedio no sea tan distinto.
 | Costo por 1000 tokens de salida | 0,00150 USD | 0,00250 USD |
 | Costo real de la consulta medida | 0,00003925 USD | 0,00007250 USD |
 | Tokens de entrada / salida medidos | 25 / 22 | 25 / 26 |
-| Tokens de razonamiento ocultos | ninguno | ninguno |
+| Tokens de razonamiento no incluidos en candidatesTokenCount | ninguno | ninguno |
 | Latencia promedio, 10 mediciones | **5,05 s** | **1,59 s** |
 | Latencia mínima y máxima | 1,76 s — 8,83 s | 0,94 s — 1,76 s |
 | Variabilidad de la latencia | **46 %** | **15 %** |
-| Respuestas correctas sobre intentos | 14 de 16 cortas, 0 de 3 largas | 31 de 31 |
+| Respuestas correctas sobre intentos, en las corridas de medición | 14 de 16 cortas, 0 de 3 largas | 31 de 31 |
 | Límite capa gratuita | 15 por minuto, 500 por día | 15 por minuto, 500 por día |
 | Calidad P1 · concreta / lógica / no alucina | 2 / 3 / 1 | 2 / 3 / 1 |
 | Calidad P2 · concreta / lógica / no alucina | 1 / 3 / 2 | 3 / 3 / 3 |
@@ -213,9 +216,10 @@ concede en Magallanes, Aysén y la provincia de Palena.
  
 **P2 · aquí se separaron.** Gemini 3.5 Flash-Lite reconoció que "necesidades de
 la empresa" es terminología del Código del Trabajo chileno, lo declaró
-explícitamente y resolvió el caso completo. Las once afirmaciones que hizo son
-correctas contra el texto de los artículos 161, 162, 163, 172, 73 y 177, con un
-solo error de nombre institucional. Gemini 3.1 Flash-Lite, ante la misma
+explícitamente y resolvió el caso completo. Sus once afirmaciones sustantivas son
+correctas contra el texto de los artículos 161, 162, 163, 172, 73 y 177. El
+único error fue escribir "Inspectoría del Trabajo" donde el Código dice
+"Inspección del Trabajo". Gemini 3.1 Flash-Lite, ante la misma
 pregunta, respondió con el Estatuto de los Trabajadores de España.
  
 Conviene matizar. **La pregunta no indicaba el país**, así que parte de la
@@ -278,16 +282,21 @@ quedaría obsoleto si el proyecto escalara**.
  
 ### Matriz de decisión
  
-Las notas de calidad son el promedio de las nueve notas de cada modelo. Las
-demás se asignan de 1 a 3 según los datos medidos.
+Las notas de calidad son el promedio de las nueve notas de cada modelo, 21 y 24
+sobre 27, divididas por 9. Las demás se asignan de 1 a 3 según los datos
+medidos. La columna ponderada es la nota multiplicada por el peso.
  
 | Criterio | Peso | 3.1 Flash-Lite | Ponderado | 3.5 Flash-Lite | Ponderado |
 |---|---|---|---|---|---|
-| Calidad, con énfasis en no alucinar | 50 % | 2,3 | 1,17 | 2,7 | 1,35 |
-| Disponibilidad | 20 % | 1,0 | 0,20 | 3,0 | 0,60 |
-| Latencia y estabilidad | 20 % | 1,0 | 0,20 | 3,0 | 0,60 |
-| Costo en dólares | 10 % | 3,0 | 0,30 | 2,0 | 0,20 |
+| Calidad, con énfasis en no alucinar | 50 % | 2,33 | 1,17 | 2,67 | 1,33 |
+| Disponibilidad | 20 % | 1,00 | 0,20 | 3,00 | 0,60 |
+| Latencia y estabilidad | 20 % | 1,00 | 0,20 | 3,00 | 0,60 |
+| Costo en dólares | 10 % | 3,00 | 0,30 | 2,00 | 0,20 |
 | **Total** | **100 %** | | **1,87** | | **2,73** |
+ 
+*Las notas de calidad se muestran redondeadas a dos decimales. Los valores
+exactos son 21/9 = 2,333 y 24/9 = 2,667, y la columna ponderada y los totales
+se calculan a partir de ellos.*
  
 ### Sensibilidad de la nota de jurisdicción
  
@@ -311,8 +320,8 @@ diferencia es mucho mayor y está respaldada por más mediciones.
 Elijo **Gemini 3.5 Flash-Lite**. El peso de la decisión está en tres datos de
 la tabla comparativa. Responde tres veces más rápido, con una variabilidad tres
 veces menor, y contestó en las 31 llamadas que se le hicieron. Para una
-aplicación que
-atiende consultas reales, un modelo que a veces tarda dos segundos y a veces
+aplicación que atiende consultas reales, un modelo que a veces tarda dos
+segundos y a veces
 nueve, y que algunas veces no responde, no es utilizable aunque sus respuestas
 sean buenas cuando llegan.
  
@@ -326,8 +335,8 @@ según se muestra en el análisis de sensibilidad anterior.
  
 Gemini 3.1 Flash-Lite no es un mal modelo. En dos de las tres preguntas estuvo
 igual o mejor, y es un 35 % más barato en tokens de salida. La decisión no es
-que sea incompetente, es que no es predecible, y la diferencia de precio a este
-volumen es de menos de un dólar al mes.
+que sea incompetente, es que no es predecible, y la diferencia de precio a la
+escala actual del proyecto es de menos de un dólar al mes.
  
 ---
  
@@ -342,8 +351,9 @@ están habilitados en la capa gratuita.
  
 Usarlos exigiría habilitar facturación. El precio publicado de Gemini 4 Argon
 es de 2,00 dólares por millón de tokens de entrada y 10,00 de salida, y sube a
-4,00 y 20,00 a partir del 1 de diciembre de 2026. Eso lo deja entre seis y
-veinte veces por sobre el modelo elegido.
+4,00 y 20,00 a partir del 1 de diciembre de 2026. Comparado con el modelo
+elegido, eso va de 4 veces más caro en tokens de salida hoy hasta 13 veces más
+caro en tokens de entrada desde diciembre.
  
 Como esta etapa del proyecto trabaja con presupuesto cero, un modelo que no se
 puede desplegar hoy no es un candidato. **Eso no significa descartarlo de forma
@@ -376,7 +386,7 @@ Descartado por desempeño y por costo real.
 |---|---|
 | Respuestas correctas | 6 de 10 |
 | Latencia promedio | 4,04 s, contra 1,59 s del modelo elegido |
-| Tokens de razonamiento ocultos | 346, para una respuesta visible de 19 tokens |
+| Tokens de razonamiento no visibles en candidatesTokenCount | 346, para una respuesta visible de 19 tokens |
  
 El hallazgo del razonamiento merece detalle. En las respuestas de este modelo,
 `totalTokenCount` no coincide con la suma de `promptTokenCount` y
@@ -406,9 +416,9 @@ segundos. Una variabilidad de 46 % significa que quien consulta no puede saber
 si esperará dos segundos o nueve.
  
 **Inconsistencia en la jurisdicción.** Identificó correctamente la legislación
-chilena en dos de las tres preguntas de prueba y respondió con legislación
-española en la tercera, sin que mediara ningún cambio en la configuración ni en
-el prompt entre una y otra.
+chilena en las preguntas 1 y 3, y respondió con legislación española en la
+pregunta 2, sin que mediara ningún cambio en la configuración ni en el prompt
+entre una consulta y otra.
  
 Lo que el modelo tiene a favor queda consignado para que la decisión sea
 revisable. Es un 35 % más barato en tokens de salida y en dos de las tres
@@ -443,8 +453,8 @@ consultado contenido que pertenece a otros artículos. Esto no se resuelve
 cambiando de modelo, porque ambos responden desde su memoria de entrenamiento.
  
 La solución es entregarle al modelo el texto literal del artículo y pedirle que
-responda solo con ese fragmento, que es el enfoque de recuperación aumentada
-que se aborda en el módulo siguiente.
+responda solo con ese fragmento. Ese enfoque se llama generación aumentada por
+recuperación, RAG por sus siglas en inglés, y se aborda en el módulo siguiente.
  
 ### El prompt de sistema no fija la jurisdicción
  
@@ -502,15 +512,16 @@ diarias si se pudieran sostener.
  
 El promedio diario puede estar holgado y una concentración puntual de consultas
 igual rechazar usuarios. Esto ya se observó desde el otro lado durante las
-mediciones, cuando Gemini 3.8 Flash y Gemini 3.6 Flash devolvieron 503 por
-demanda de otros usuarios sobre el mismo modelo.
+mediciones, cuando Gemini 3.8 Flash y Gemini 3.6 Flash devolvieron 503 con el
+mensaje "this model is currently experiencing high demand", es decir saturación
+del modelo por el conjunto de su demanda, no por la de esta cuenta.
  
 **Mitigaciones previstas, en orden de conveniencia.**
  
 | Medida | Qué resuelve |
 |---|---|
 | Caché de respuestas | las preguntas repetidas no llegan a la API |
-| Cola con espera exponencial | las alzas de demanda se atienden más lento en vez de fallar |
+| Cola con backoff exponencial | las alzas de demanda se atienden más lento en vez de fallar |
 | Techo al largo de la respuesta | baja costo y latencia por consulta |
 | Capa de pago | límites más altos, cuando el proyecto lo justifique |
  
@@ -522,10 +533,12 @@ la capacidad sin aumentar el gasto.
  
 ### Manejo de errores
  
-Un error 503 puede ocurrir con cualquier proveedor. Hoy la aplicación lo maneja
-informando al usuario con un mensaje claro y sin interrumpirse, gracias al
-manejo de excepciones incorporado en la Unidad 1.3. La mitigación siguiente,
-cuando el volumen lo justifique, es reintentar con espera exponencial.
+Un error 503 puede ocurrir con cualquier proveedor. Hoy la aplicación lo captura
+en el borde del programa y termina mostrando un mensaje entendible, en lugar de
+caerse con un rastro de error sin controlar, gracias al manejo de excepciones
+incorporado en la Unidad 1.3. Lo que todavía no hace es recuperarse sola. La
+mitigación siguiente, cuando el volumen lo justifique, es reintentar con espera
+exponencial, conocida como backoff exponencial.
  
 ### Privacidad
  
