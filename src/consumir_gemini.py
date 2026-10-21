@@ -14,6 +14,7 @@ Cambiar de proveedor afecta solo a esas dos.
  
 import os
 import requests
+import time          # solo para la medición del Bloque 9
 from dotenv import load_dotenv
  
 load_dotenv()
@@ -31,8 +32,8 @@ MENSAJE_GENERICO = ("No pudimos completar tu consulta. Intenta nuevamente en uno
 INSTRUCCION = "Responde siempre en idioma español."
 
 #precios para gemini-3.5-flash-lite
-PRECIO_ENTRADA = 0.30 / 1_000_000
-PRECIO_SALIDA = 2.50 / 1_000_000
+PRECIO_ENTRADA = 0.25 / 1_000_000
+PRECIO_SALIDA  = 1.50 / 1_000_000
 
 def calcular_costo_peticion(datos, precio_entrada, precio_salida):
     """Calcula el costo en dólares de una petición, según sus tokens.
@@ -137,7 +138,7 @@ def enviar_peticion(url, headers, body):
     """
     try:
         respuesta = requests.post(url, headers=headers, json=body,
-                                  timeout=30)
+                                  timeout=120)
     except requests.exceptions.ConnectionError as fallo:
         raise RuntimeError(
             "No hay conexión. Revisa tu internet e intenta de nuevo.\n"
@@ -227,7 +228,48 @@ def obtener_dato_de_prueba(pregunta):
     datos = enviar_peticion(url, headers, body)
     costo = calcular_costo_peticion(datos, PRECIO_ENTRADA, PRECIO_SALIDA)
     return extraer_texto(datos), costo, datos["usageMetadata"]
- 
+
+
+ # ===== BLOQUE 9 · MEDICIÓN TEMPORAL ====================================
+# Esto se agregó solo para medir y comparar dos modelos en la actividad
+# del Bloque 9. No es parte de la aplicación, es una herramienta de
+# medición, y por eso no aparece en el diagrama de arquitectura.
+#
+# Se borra completo junto con el bloque del mismo nombre que está en el
+# if __name__ y con la línea "import time" de arriba.
+
+def medir_latencia(pregunta, repeticiones=10, pausa=5):
+    """Repite la misma pregunta varias veces y cronometra cada llamada.
+
+    Las llamadas que fallan se cuentan en vez de interrumpir la medición,
+    porque la tasa de fallas es uno de los datos que se está midiendo.
+
+    Args:
+        pregunta: el texto que se envía en cada repetición.
+        repeticiones: cuántas veces se intenta la llamada.
+        pausa: segundos de espera entre llamadas.
+
+    Returns:
+        Una tupla con la lista de latencias de las que respondieron,
+        cuántas fallaron, y el texto, el costo y el usageMetadata de la
+        última que respondió.
+    """
+    latencias = []
+    fallas = 0
+    texto = None
+    costo = None
+    uso = None
+    for _ in range(repeticiones):
+        inicio = time.perf_counter()
+        try:
+            texto, costo, uso = obtener_dato_de_prueba(pregunta)
+            latencias.append(time.perf_counter() - inicio)
+        except RuntimeError:
+            fallas += 1
+        time.sleep(pausa)
+    return latencias, fallas, texto, costo, uso
+
+# ===== FIN BLOQUE 9 ====================================================
  
 if __name__ == "__main__":
     from contraste import *
@@ -241,8 +283,10 @@ if __name__ == "__main__":
     # atrapar Exception dentro de una función taparía errores de
     # programación míos justo donde necesito verlos.
     try:
+        titulobn(f"\nAI_MODEL vale  ->  {os.getenv('AI_MODEL')}")
         respuesta_gemini, costo, uso = obtener_dato_de_prueba(
-            "explicame que es json en 2 lineas ")
+            "¿Qué establece el artículo 67 del Código del Trabajo sobre el feriado anual?"
+        )
         salbn(f"\nLa respuesta de Gemini es:\n{respuesta_gemini}")
         titulobn(f"\nCosto estimado de la petición: {costo:.8f} USD")
 
@@ -252,14 +296,46 @@ if __name__ == "__main__":
         exitobn(f"\nTokens entrada    {uso['promptTokenCount']}")
         exitobn(f"Tokens salida     {uso['candidatesTokenCount']}")
         exitobn(f"Total tokens      {uso['totalTokenCount']}")
- 
+
+        # ===== BLOQUE 9 · MEDICIÓN TEMPORAL ========================
+        # Esto se agregó solo para medir y comparar dos modelos en la
+        # actividad del Bloque 9. No es parte de la aplicación, es una
+        # herramienta de medición, y por eso no aparece en el diagrama
+        # de arquitectura.
+        #
+        # Mide un modelo por corrida. Para medir el otro candidato se
+        # cambia AI_MODEL en el .env, y también los dos PRECIO_ de
+        # arriba, porque no son los mismos para los dos modelos.
+        # PREGUNTA = ("¿Cuántos días de vacaciones corresponden por año en "
+        #             "Chile? Responde en una línea.")
+
+        # latencias, fallas, texto_m, costo_m, uso_m = medir_latencia(PREGUNTA)
+
+        # titulobn(f"\nModelo medido  {os.getenv('AI_MODEL')}")
+
+        # for numero, segundos in enumerate(latencias, 1):
+        #     exitobn(f"Medición {numero:>2}       {segundos:.2f} s")
+
+        # exitobn(f"\nRespondieron      {len(latencias)} de "
+        #         f"{len(latencias) + fallas}")
+
+        # if latencias:
+        #     exitobn(f"Latencia promedio {sum(latencias)/len(latencias):.2f} s")
+        #     exitobn(f"Costo             {costo_m:.8f} USD")
+        #     exitobn(f"Tokens entrada    {uso_m['promptTokenCount']}")
+        #     exitobn(f"Tokens salida     {uso_m['candidatesTokenCount']}")
+        #     exitobn(f"Total tokens      {uso_m['totalTokenCount']}")
+        #     exitobn(f"usageMetadata completo  {uso_m}")
+        #     salbn(f"\nÚltima respuesta recibida:\n{texto_m}")
+        # ===== FIN BLOQUE 9 ========================================
+
     except (ValueError, RuntimeError) as fallo:
         # El mensaje trae las dos partes juntas, la del usuario y el
         # detalle marcado con [técnico]. Hoy se imprimen las dos porque
         # es una simulación en terminal. Más adelante se definirá cómo se
         # muestra cada parte por separado.
         avisofn(f"\n{fallo}")
- 
+
     except Exception as fallo:
         errorfn(f"\nError inesperado. {type(fallo).__name__}")
         avisofn(f"\n{fallo}")
