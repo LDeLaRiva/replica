@@ -71,7 +71,8 @@ por presupuesto y no por falta de mérito técnico.
 El diagrama corresponde al mismo módulo medido en este documento. El modelo se
 configura en la variable `AI_MODEL` del archivo `.env`, de modo que probar otro
 candidato no obliga a reescribir ninguna función. Sí exige actualizar las dos
-constantes de precio del módulo, porque cada modelo cobra distinto. 
+constantes de precio del módulo, porque cada modelo cobra distinto.
+ 
 ---
  
 ## Comparación de candidatos
