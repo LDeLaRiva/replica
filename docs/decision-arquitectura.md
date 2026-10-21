@@ -70,7 +70,7 @@ por presupuesto y no por falta de mérito técnico.
  
 El diagrama corresponde al mismo módulo medido en este documento. El modelo se
 configura en la variable `AI_MODEL` del archivo `.env`, por lo que cambiar de
-candidato no requiere un ajuste del código.
+candidato no requiere tocar el código.
  
 ---
  
@@ -192,6 +192,11 @@ un servicio poco confiable aunque el promedio no sea tan distinto.
 | Calidad P2 · concreta / lógica / no alucina | 1 / 3 / 2 | 3 / 3 / 3 |
 | Calidad P3 · concreta / lógica / no alucina | 3 / 3 / 3 | 3 / 3 / 3 |
 | **Calidad total** | **21 de 27** | **24 de 27** |
+ 
+*Mediciones realizadas el 20 y el 21 de octubre de 2026. Precios consultados el
+21 de octubre de 2026 en la página oficial de Gemini. Tanto los precios como el
+comportamiento de los modelos cambian con el tiempo, por lo que esta tabla
+pierde validez como evidencia a medida que pasen los meses.*
  
 ### Qué se observó en cada pregunta
  
@@ -386,8 +391,31 @@ rechaza antes bajo carga.
  
 ### Gemini 3.1 Flash-Lite
  
-Descartado por inestabilidad y por una falla de jurisdicción, según el detalle
-de la tabla comparativa y la matriz de decisión.
+Es el candidato que se comparó en detalle y el que finalmente no se eligió.
+Quedó fuera por tres razones concretas, todas medidas.
+ 
+**Inestabilidad en la disponibilidad.** De 16 llamadas con preguntas de
+respuesta corta respondió 14, y falló en los 3 intentos con preguntas de
+respuesta larga, que son las que la aplicación necesita. Las fallas fueron
+503 UNAVAILABLE y no siguieron ningún patrón reconocible, de modo que no se
+pueden prever ni evitar desde el código.
+ 
+**Latencia alta y, sobre todo, impredecible.** Promedió 5,05 segundos frente a
+1,59 del modelo elegido, con mediciones que fueron desde 1,76 hasta 8,83
+segundos. Una variabilidad de 46 % significa que quien consulta no puede saber
+si esperará dos segundos o nueve.
+ 
+**Inconsistencia en la jurisdicción.** Identificó correctamente la legislación
+chilena en dos de las tres preguntas de prueba y respondió con legislación
+española en la tercera, sin que mediara ningún cambio en la configuración ni en
+el prompt entre una y otra.
+ 
+Lo que el modelo tiene a favor queda consignado para que la decisión sea
+revisable. Es un 35 % más barato en tokens de salida y en dos de las tres
+preguntas de calidad obtuvo una puntuación igual o mejor que el modelo elegido.
+No se descartó por incompetencia sino por falta de previsibilidad, y la
+diferencia de precio a la escala actual del proyecto es inferior a un dólar
+mensual.
  
 ### El patrón de la capa gratuita
  
