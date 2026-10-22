@@ -1,0 +1,25 @@
+{
+  "fecha": "2026-10-22T03:10:18",
+  "resultados": {
+    "responder_consulta": {
+      "exitos": 5,
+      "fallas": 0,
+      "intentos": 5
+    },
+    "extraer_datos_contrato": {
+      "exitos": 5,
+      "fallas": 0,
+      "intentos": 5
+    },
+    "revisar_clausula": {
+      "exitos": 5,
+      "fallas": 0,
+      "intentos": 5
+    },
+    "listar_materias_contrato": {
+      "exitos": 5,
+      "fallas": 0,
+      "intentos": 5
+    }
+  }
+}

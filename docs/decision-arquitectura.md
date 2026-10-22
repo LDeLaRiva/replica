@@ -7,7 +7,7 @@
 Esta restricción corresponde a la etapa actual del proyecto, no a una definición
 permanente de arquitectura. Si el proyecto avanzara a producción, la comparación
 debería rehacerse incorporando modelos de pago, que hoy quedan fuera del alcance
-por presupuesto y no por falta de mérito técnico.
+por presupuesto y no por falta de mérito técnico de algún modelo.
  
 > ### Resumen
 >
