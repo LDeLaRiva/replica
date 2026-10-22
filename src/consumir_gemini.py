@@ -12,9 +12,11 @@ Lo que depende de Gemini está en armar_peticion y en extraer_texto.
 Cambiar de proveedor afecta solo a esas dos.
 """
  
+import json
 import os
-import requests
+import re
 import time          # solo para la medición del Bloque 9
+import requests
 from dotenv import load_dotenv
  
 load_dotenv()
@@ -66,15 +68,20 @@ def calcular_costo_peticion(datos, precio_entrada, precio_salida):
     return (tokens_entrada * precio_entrada) + (tokens_salida * precio_salida)
  
  
-def armar_peticion(pregunta):
+def armar_peticion(pregunta, system_instruction, response_schema=None):
     """Valida la pregunta del usuario y arma la petición a Gemini.
- 
+
     Args:
         pregunta: el texto que escribió el usuario, todavía sin validar.
- 
+        system_instruction: la instrucción de comportamiento, que viaja
+            en un campo aparte de la pregunta.
+        response_schema: la forma exacta que debe tener el JSON de
+            respuesta. Si no se entrega, la respuesta viene como texto
+            libre.
+
     Returns:
         Una tupla con la url, los headers y el body, en ese orden.
- 
+
     Raises:
         ValueError: si la pregunta no es texto, si viene vacía o si supera
             LARGO_MAXIMO caracteres. También si falta AI_API_KEY o
@@ -109,13 +116,19 @@ def armar_peticion(pregunta):
     # url aparecería completa en el mensaje de cualquier error de conexión.
     headers = {"x-goog-api-key": api_key_gemini}
     body = {
-        "system_instruction": {
-            "parts": [{"text": INSTRUCCION}]
+        "systemInstruction": {
+            "parts": [{"text": system_instruction}]
         },
         "contents": [
             {"parts": [{"text": pregunta}]}
         ],
     }
+
+    if response_schema is not None:
+        body["generationConfig"] = {
+            "responseMimeType": "application/json",
+            "responseSchema": response_schema,
+        }
     return url, headers, body
  
  
@@ -209,14 +222,55 @@ def extraer_texto(datos):
         raise RuntimeError(
             f"{MENSAJE_GENERICO}\n"
             f"[técnico] TypeError. {fallo}")
+
+def parsear_respuesta_json(texto, claves_esperadas):
+    """Convierte la respuesta del modelo en un diccionario de Python.
+
+    Limpia las marcas de markdown que el modelo a veces agrega alrededor
+    del JSON, lo interpreta, y confirma que traiga las claves pedidas.
+
+    Args:
+        texto: la respuesta del modelo, tal como la entrega extraer_texto.
+        claves_esperadas: lista con los nombres de las claves que el JSON
+            debe traer.
+
+    Returns:
+        El JSON ya convertido en diccionario.
+
+    Raises:
+        ValueError: si el texto no es JSON válido, o si al diccionario le
+            falta alguna de las claves esperadas.
+    """
+    texto_limpio = texto.strip()
+    texto_limpio = re.sub(r"^```(?:json)?\s*", "", texto_limpio)
+    texto_limpio = re.sub(r"\s*```$", "", texto_limpio)
+
+    try:
+        datos = json.loads(texto_limpio)
+    except json.JSONDecodeError as fallo:
+        raise ValueError(
+            f"{MENSAJE_GENERICO}\n"
+            f"[técnico] La respuesta no es JSON válido. {fallo}")
+
+    faltantes = [c for c in claves_esperadas if c not in datos]
+    if faltantes:
+        raise ValueError(
+            f"{MENSAJE_GENERICO}\n"
+            f"[técnico] Al JSON le faltan estas claves. {faltantes}")
+
+    return datos
  
  
-def obtener_dato_de_prueba(pregunta):
+def obtener_dato_de_prueba(pregunta, system_instruction, response_schema=None):
     """Obtiene la respuesta del modelo para la pregunta que se le entrega.
  
     Args:
         pregunta: el texto que escribió el usuario, todavía sin validar.
- 
+        system_instruction: la instrucción de comportamiento que se le
+            entrega a armar_peticion.
+        response_schema: la forma exacta que debe tener el JSON de
+            respuesta, o None si la respuesta viene como texto libre.
+
     Returns:
         El texto generado, como string.
  
@@ -224,7 +278,7 @@ def obtener_dato_de_prueba(pregunta):
         ValueError: los que lanza armar_peticion.
         RuntimeError: los que lanzan enviar_peticion y extraer_texto.
     """
-    url, headers, body = armar_peticion(pregunta)
+    url, headers, body = armar_peticion(pregunta, system_instruction, response_schema)
     datos = enviar_peticion(url, headers, body)
     costo = calcular_costo_peticion(datos, PRECIO_ENTRADA, PRECIO_SALIDA)
     return extraer_texto(datos), costo, datos["usageMetadata"]
@@ -235,39 +289,41 @@ def obtener_dato_de_prueba(pregunta):
 # del Bloque 9. No es parte de la aplicación, es una herramienta de
 # medición, y por eso no aparece en el diagrama de arquitectura.
 #
-# Se borra completo junto con el bloque del mismo nombre que está en el
+# Se comenta completo junto con el bloque del mismo nombre que está en el
 # if __name__ y con la línea "import time" de arriba.
 
-def medir_latencia(pregunta, repeticiones=10, pausa=5):
-    """Repite la misma pregunta varias veces y cronometra cada llamada.
+# def medir_latencia(pregunta, system_instruction, repeticiones=10, pausa=15):
+#     """Repite la misma pregunta varias veces y cronometra cada llamada.
 
-    Las llamadas que fallan se cuentan en vez de interrumpir la medición,
-    porque la tasa de fallas es uno de los datos que se está midiendo.
+#     Las llamadas que fallan se cuentan en vez de interrumpir la medición,
+#     porque la tasa de fallas es uno de los datos que se está midiendo.
 
-    Args:
-        pregunta: el texto que se envía en cada repetición.
-        repeticiones: cuántas veces se intenta la llamada.
-        pausa: segundos de espera entre llamadas.
+#     Args:
+#         pregunta: el texto que se envía en cada repetición.
+#         system_instruction: la instrucción de comportamiento, la misma en
+#             todas las repeticiones para que la comparación sea justa.
+#         repeticiones: cuántas veces se intenta la llamada.
+#         pausa: segundos de espera entre llamadas.
 
-    Returns:
-        Una tupla con la lista de latencias de las que respondieron,
-        cuántas fallaron, y el texto, el costo y el usageMetadata de la
-        última que respondió.
-    """
-    latencias = []
-    fallas = 0
-    texto = None
-    costo = None
-    uso = None
-    for _ in range(repeticiones):
-        inicio = time.perf_counter()
-        try:
-            texto, costo, uso = obtener_dato_de_prueba(pregunta)
-            latencias.append(time.perf_counter() - inicio)
-        except RuntimeError:
-            fallas += 1
-        time.sleep(pausa)
-    return latencias, fallas, texto, costo, uso
+#     Returns:
+#         Una tupla con la lista de latencias de las que respondieron,
+#         cuántas fallaron, y el texto, el costo y el usageMetadata de la
+#         última que respondió.
+#     """
+#     latencias = []
+#     fallas = 0
+#     texto = None
+#     costo = None
+#     uso = None
+#     for _ in range(repeticiones):
+#         inicio = time.perf_counter()
+#         try:
+#             texto, costo, uso = obtener_dato_de_prueba(pregunta, system_instruction)
+#             latencias.append(time.perf_counter() - inicio)
+#         except RuntimeError:
+#             fallas += 1
+#         time.sleep(pausa)
+#     return latencias, fallas, texto, costo, uso
 
 # ===== FIN BLOQUE 9 ====================================================
  
@@ -285,7 +341,8 @@ if __name__ == "__main__":
     try:
         titulobn(f"\nAI_MODEL vale  ->  {os.getenv('AI_MODEL')}")
         respuesta_gemini, costo, uso = obtener_dato_de_prueba(
-            "explicame que es json en 2 lineas ")
+            "explicame que es json en 2 lineas ", 
+            INSTRUCCION)
         salbn(f"\nLa respuesta de Gemini es:\n{respuesta_gemini}")
         titulobn(f"\nCosto estimado de la petición: {costo:.8f} USD")
 
@@ -308,7 +365,7 @@ if __name__ == "__main__":
         # PREGUNTA = ("¿Cuántos días de vacaciones corresponden por año en "
         #             "Chile? Responde en una línea.")
 
-        # latencias, fallas, texto_m, costo_m, uso_m = medir_latencia(PREGUNTA)
+        # latencias, fallas, texto_m, costo, uso = obtener_dato_de_prueba(pregunta, INSTRUCCION)
 
         # titulobn(f"\nModelo medido  {os.getenv('AI_MODEL')}")
 
