@@ -1,14 +1,23 @@
-# Salida con color para la terminal, sin dependencias.
-# Color exacto en RGB, así que no depende del tema de VS Code.
-# Tonos elegidos para fondo claro y fotosensibilidad, sin blancos ni saturados.
-#
-# Terminaciones de los atajos
-#   sin nada   solo texto en color
-#   n          texto en color con negrita
-#   b          barra de color al inicio
-#   bn         barra de color al inicio, con negrita
-#   f          fondo suave
-#   fn         fondo suave, con negrita
+"""Salida con color para la terminal, sin dependencias externas.
+
+Los colores van en RGB exacto, así que no dependen del tema de VS
+Code y se ven igual en cualquier terminal.
+
+Los tonos están pensados para una terminal de fondo claro. Usan
+texto oscuro sobre fondos suaves, en vez de texto blanco o colores
+saturados, porque esos contrastes me generan incomodidad visual
+dificultando la lectura a causa de la fotosensibilidad.
+
+Terminaciones de los atajos:
+    sin nada   solo texto en color
+    n          texto en color con negrita
+    b          barra de color al inicio
+    bn         barra de color al inicio, con negrita
+    f          fondo suave
+    fn         fondo suave, con negrita
+    t          tabla de clave y valor en columna, con barra
+"""
+
 import shutil
 import textwrap
 
@@ -41,7 +50,7 @@ def _fondo(rgb):
     return f"\033[48;2;{r};{g};{b}m"
 
 
-# ---------- las tres formas, para elegir el color a mano ----------
+# ---------- las cuatro formas, para elegir el color a mano ----------
 
 def color(texto, tono="verde", negrita=True):
     """Solo el texto en color, lo más suave."""
@@ -62,6 +71,27 @@ def barra(texto, tono="verde", negrita=True):
             continue
         for linea in textwrap.wrap(parrafo, ancho):
             print(f"{marca} {estilo}{linea}{RESET}")
+
+def tabla(pares, tono="verde", negrita=True):
+    """Pares de clave y valor en columna, con el valor alineado.
+
+    El ancho de la primera columna sale de la clave más larga, así
+    que sirve para cualquier diccionario sin saber sus claves. El
+    valor se parte antes de imprimirlo, si no la continuación se
+    descuelga hasta el margen izquierdo y deja de leerse como
+    columna.
+    """
+    if not pares:
+        return
+    ancho = max(len(str(clave)) for clave in pares)
+    sangria = 2 + ancho + 2
+    libre = max(
+        shutil.get_terminal_size((80, 20)).columns - 5 - sangria, 1)
+    for clave, valor in pares.items():
+        trozos = textwrap.wrap(str(valor), libre) or [""]
+        barra(f"  {str(clave):<{ancho}}  {trozos[0]}", tono, negrita)
+        for trozo in trozos[1:]:
+            barra(f"{' ' * sangria}{trozo}", tono, negrita)
 
 def caja(texto, tono="verde", negrita=True):
     """Fondo suave con texto oscuro del mismo tono, parejo de los dos lados."""
@@ -99,6 +129,9 @@ def titulof(texto):
 def titulofn(texto):
     caja(texto, "azul", negrita=True)
 
+def titulot(pares):
+    tabla(pares, "azul", negrita=True)
+
 
 # ---------- exito, verde. Algo salió bien ----------
 
@@ -119,6 +152,9 @@ def exitof(texto):
 
 def exitofn(texto):
     caja(texto, "verde", negrita=True)
+
+def exitot(pares):
+    tabla(pares, "verde", negrita=True)
 
 
 # ---------- aviso, ambar. Advertencias ----------
@@ -141,6 +177,9 @@ def avisof(texto):
 def avisofn(texto):
     caja(texto, "ambar", negrita=True)
 
+def avisot(pares):
+    tabla(pares, "ambar", negrita=True)
+
 
 # ---------- error, vino. Algo falló ----------
 
@@ -161,6 +200,9 @@ def errorf(texto):
 
 def errorfn(texto):
     caja(texto, "vino", negrita=True)
+
+def errort(pares):
+    tabla(pares, "vino", negrita=True)
 
 
 # ---------- sal, fucsia. El resultado principal ----------
@@ -183,6 +225,9 @@ def salf(texto):
 def salfn(texto):
     caja(texto, "fucsia", negrita=True)
 
+def salt(pares):
+    tabla(pares, "fucsia", negrita=True)
+
 
 # ---------- nota, teal. Comentarios al margen ----------
 
@@ -204,6 +249,10 @@ def notaf(texto):
 def notafn(texto):
     caja(texto, "teal", negrita=True)
 
+def notat(pares):
+    tabla(pares, "teal", negrita=True)
+
+
 # ---------- lila. Para destacar algo sin alarmar ----------
 
 def lila(texto):
@@ -223,3 +272,6 @@ def lilaf(texto):
 
 def lilafn(texto):
     caja(texto, "lila", negrita=True)
+
+def lilat(pares):
+    tabla(pares, "lila", negrita=True)

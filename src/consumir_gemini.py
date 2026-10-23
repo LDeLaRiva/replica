@@ -1,41 +1,48 @@
 """Consulta a la API de Gemini.
- 
+
 Cada error que lanza este módulo lleva un mensaje con dos partes,
 separadas por un salto de línea. La primera es para el usuario final y la
 segunda, marcada con [técnico], es el detalle para quien programa.
- 
+
 Por ahora las dos se imprimen juntas, porque esto corre en terminal y no
 hay todavía un usuario distinto de quien desarrolla. Es una simulación.
 Más adelante se definirá cómo se muestra cada parte por separado.
- 
-Lo que depende de Gemini está en armar_peticion y en extraer_texto.
-Cambiar de proveedor afecta solo a esas dos.
+
+Lo que depende del formato de Gemini está en armar_peticion,
+extraer_texto, calcular_costo_peticion y obtener_dato_de_prueba,
+además de la prueba del bloque if __name__. Cambiar de proveedor
+afecta solo a esos lugares.
 """
- 
+
 import json
 import os
 import re
-import time          # solo para la medición del Bloque 9
+#import time          # solo para la medición del Bloque 9
 import requests
 from dotenv import load_dotenv
- 
-load_dotenv()
- 
-# Tope propio, no es el límite de la API, que acepta muchísimo más.
-# Medido sobre documentos tipo. Un contrato completo son 3.900 a 5.900
-# caracteres, un finiquito 2.900 y un contrato con su anexo 7.600. El peor
-# caso, dos contratos para comparar, dio 11.984. Los 15.000 lo cubren con
-# margen y siguen evitando que alguien pegue un documento de cien páginas.
-LARGO_MAXIMO = 15000  #prueba 
 
- 
-MENSAJE_GENERICO = ("No pudimos completar tu consulta. Intenta nuevamente en unos minutos.")
+load_dotenv()
+
+# Tope propio, no es el límite de la API, que acepta muchísimo más.
+# Medido sobre documentos tipo. Un contrato completo son 3.900 a
+# 5.900 caracteres, un finiquito 2.900 y un contrato con su anexo
+# 7.600. Los 15.000 dejan el doble de margen sobre el caso más largo
+# medido, y siguen evitando que alguien pegue un documento de cien
+# páginas.
+LARGO_MAXIMO = 15000  # provisional, se ajustará con uso real
+
+
+MENSAJE_GENERICO = ("USUARIO: No pudimos completar tu consulta. Intenta nuevamente en unos minutos.")
 
 INSTRUCCION = "Responde siempre en idioma español."
 
-#precios para gemini-3.5-flash-lite
+# Precios del nivel pagado, por millón de tokens, de la página
+# oficial de Google. Consultados el 22 de octubre de 2026. En el
+# nivel gratuito los dos son cero, así que esto es lo que costaría
+# si el proyecto pasara a pago.
 PRECIO_ENTRADA = 0.30 / 1_000_000
-PRECIO_SALIDA  = 2.50 / 1_000_000
+PRECIO_SALIDA = 2.50 / 1_000_000
+
 
 def calcular_costo_peticion(datos, precio_entrada, precio_salida):
     """Calcula el costo en dólares de una petición, según sus tokens.
@@ -66,8 +73,8 @@ def calcular_costo_peticion(datos, precio_entrada, precio_salida):
             f"[técnico] TypeError. {fallo}")
 
     return (tokens_entrada * precio_entrada) + (tokens_salida * precio_salida)
- 
- 
+
+
 def armar_peticion(pregunta, system_instruction, response_schema=None):
     """Valida la pregunta del usuario y arma la petición a Gemini.
 
@@ -99,7 +106,7 @@ def armar_peticion(pregunta, system_instruction, response_schema=None):
         raise ValueError(
             f"Tu consulta es muy larga. El máximo son {LARGO_MAXIMO} caracteres.\n"
             f"[técnico] La pregunta tiene {len(pregunta)} caracteres.")
- 
+
     api_key_gemini = os.getenv("AI_API_KEY")
     modelo = os.getenv("AI_MODEL")
     if not api_key_gemini:
@@ -110,7 +117,7 @@ def armar_peticion(pregunta, system_instruction, response_schema=None):
         raise ValueError(
             f"{MENSAJE_GENERICO}\n"
             "[técnico] Falta AI_MODEL en el .env")
- 
+
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{modelo}:generateContent"
     # La credencial va en el header y no en la url. Si fuera parte de la
     # url aparecería completa en el mensaje de cualquier error de conexión.
@@ -130,19 +137,19 @@ def armar_peticion(pregunta, system_instruction, response_schema=None):
             "responseSchema": response_schema,
         }
     return url, headers, body
- 
- 
+
+
 def enviar_peticion(url, headers, body):
     """Envía la petición al servicio y entrega lo que éste responda.
- 
+
     Args:
         url: la dirección a la que se envía la petición.
         headers: las cabeceras, que incluyen la credencial.
         body: la pregunta ya empaquetada para enviar.
- 
+
     Returns:
         La respuesta del servicio, convertida en diccionario.
- 
+
     Raises:
         RuntimeError: si falla la conexión, si se agota el tiempo de
             espera, si la url está mal formada, si hay un bucle de
@@ -178,38 +185,39 @@ def enviar_peticion(url, headers, body):
         raise RuntimeError(
             f"{MENSAJE_GENERICO}\n"
             f"[técnico] {type(fallo).__name__}. {fallo}")
- 
+
     # Un código de error del servicio no levanta excepción, llega como
     # respuesta normal, así que hay que revisarlo a mano.
     if respuesta.status_code != 200:
         raise RuntimeError(
             f"{MENSAJE_GENERICO}\n"
             f"[técnico] El servicio respondió {respuesta.status_code}: {respuesta.text[:300]}")
- 
+
     try:
         return respuesta.json()
     except requests.exceptions.JSONDecodeError as fallo:
         raise RuntimeError(
             f"{MENSAJE_GENERICO}\n"
             f"[técnico] JSONDecodeError. {fallo}")
- 
- 
+
+
 def extraer_texto(datos):
     """Extrae el texto generado por el modelo desde la respuesta de Gemini.
- 
+
     Args:
         datos: la respuesta del servicio, ya convertida en diccionario.
- 
+
     Returns:
         El texto generado, como string.
- 
+
     Raises:
         RuntimeError: si la respuesta no tiene la forma esperada, sea
-            porque falta un campo, porque una lista viene vacía, o porque
-            un valor no es del tipo que se esperaba.
+            porque falta un campo, porque una lista viene vacía, porque
+            un valor no es del tipo que se esperaba, o porque el campo
+            text existe pero no trae texto.
     """
     try:
-        return datos["candidates"][0]["content"]["parts"][0]["text"]
+        texto = datos["candidates"][0]["content"]["parts"][0]["text"]
     except KeyError as fallo:
         raise RuntimeError(
             f"{MENSAJE_GENERICO}\n"
@@ -222,6 +230,17 @@ def extraer_texto(datos):
         raise RuntimeError(
             f"{MENSAJE_GENERICO}\n"
             f"[técnico] TypeError. {fallo}")
+
+    # El campo existe pero puede venir nulo o con otro tipo. Sin esta
+    # revisión el problema reaparece más lejos, como AttributeError.
+    if not isinstance(texto, str):
+        raise RuntimeError(
+            f"{MENSAJE_GENERICO}\n"
+            f"[técnico] El campo text no trae texto, llegó "
+            f"{type(texto).__name__}.")
+
+    return texto
+
 
 def parsear_respuesta_json(texto, claves_esperadas):
     """Convierte la respuesta del modelo en un diccionario de Python.
@@ -238,8 +257,9 @@ def parsear_respuesta_json(texto, claves_esperadas):
         El JSON ya convertido en diccionario.
 
     Raises:
-        ValueError: si el texto no es JSON válido, o si al diccionario le
-            falta alguna de las claves esperadas.
+        ValueError: si el texto no es JSON válido, si el JSON no es un
+            objeto, o si al diccionario le falta alguna de las claves
+            esperadas.
     """
     texto_limpio = texto.strip()
     texto_limpio = re.sub(r"^```(?:json)?\s*", "", texto_limpio)
@@ -252,6 +272,15 @@ def parsear_respuesta_json(texto, claves_esperadas):
             f"{MENSAJE_GENERICO}\n"
             f"[técnico] La respuesta no es JSON válido. {fallo}")
 
+    # Una lista también es JSON válido, y la revisión de abajo
+    # buscaría en los valores en vez de en las claves. Sin esto una
+        # lista pasaría la revisión sin traer ninguna de las claves.
+    if not isinstance(datos, dict):
+        raise ValueError(
+            f"{MENSAJE_GENERICO}\n"
+            f"[técnico] El JSON no es un objeto, llegó "
+            f"{type(datos).__name__}.")
+
     faltantes = [c for c in claves_esperadas if c not in datos]
     if faltantes:
         raise ValueError(
@@ -259,11 +288,11 @@ def parsear_respuesta_json(texto, claves_esperadas):
             f"[técnico] Al JSON le faltan estas claves. {faltantes}")
 
     return datos
- 
- 
+
+
 def obtener_dato_de_prueba(pregunta, system_instruction, response_schema=None):
     """Obtiene la respuesta del modelo para la pregunta que se le entrega.
- 
+
     Args:
         pregunta: el texto que escribió el usuario, todavía sin validar.
         system_instruction: la instrucción de comportamiento que se le
@@ -272,8 +301,9 @@ def obtener_dato_de_prueba(pregunta, system_instruction, response_schema=None):
             respuesta, o None si la respuesta viene como texto libre.
 
     Returns:
-        El texto generado, como string.
- 
+        Una tupla con el texto generado, el costo en dólares y el
+        bloque usageMetadata, en ese orden.
+
     Raises:
         ValueError: los que lanza armar_peticion.
         RuntimeError: los que lanzan enviar_peticion y extraer_texto.
@@ -284,7 +314,7 @@ def obtener_dato_de_prueba(pregunta, system_instruction, response_schema=None):
     return extraer_texto(datos), costo, datos["usageMetadata"]
 
 
- # ===== BLOQUE 9 · MEDICIÓN TEMPORAL ====================================
+# ===== BLOQUE 9 · MEDICIÓN TEMPORAL ====================================
 # Esto se agregó solo para medir y comparar dos modelos en la actividad
 # del Bloque 9. No es parte de la aplicación, es una herramienta de
 # medición, y por eso no aparece en el diagrama de arquitectura.
@@ -326,9 +356,18 @@ def obtener_dato_de_prueba(pregunta, system_instruction, response_schema=None):
 #     return latencias, fallas, texto, costo, uso
 
 # ===== FIN BLOQUE 9 ====================================================
- 
+
 if __name__ == "__main__":
-    from contraste import *
+    # El módulo no usa colores, solo esta prueba. La raíz se
+    # agrega a la ruta de búsqueda para que el archivo corra tanto
+    # con el botón como con python -m desde la raíz.
+    import sys
+    from pathlib import Path
+
+    RAIZ = Path(__file__).resolve().parent.parent
+    if str(RAIZ) not in sys.path:
+        sys.path.insert(0, str(RAIZ))
+    from src.contraste import *
     # Este bloque solo corre cuando se ejecuta este archivo directamente.
     # Si otro archivo importa el módulo, no corre, y ese archivo necesita
     # su propio try.
@@ -339,9 +378,9 @@ if __name__ == "__main__":
     # atrapar Exception dentro de una función taparía errores de
     # programación míos justo donde necesito verlos.
     try:
-        titulobn(f"\nAI_MODEL vale  ->  {os.getenv('AI_MODEL')}")
+        titulobn(f"\nAI_MODEL usado  ->  {os.getenv('AI_MODEL')}")
         respuesta_gemini, costo, uso = obtener_dato_de_prueba(
-            "explicame que es json en 2 lineas ", 
+            "Explica qué es JSON en dos líneas.",
             INSTRUCCION)
         salbn(f"\nLa respuesta de Gemini es:\n{respuesta_gemini}")
         titulobn(f"\nCosto estimado de la petición: {costo:.8f} USD")
@@ -353,6 +392,8 @@ if __name__ == "__main__":
         exitobn(f"Tokens salida     {uso['candidatesTokenCount']}")
         exitobn(f"Total tokens      {uso['totalTokenCount']}")
 
+        avisobn("\nProceso terminado.")
+
         # ===== BLOQUE 9 · MEDICIÓN TEMPORAL ========================
         # Esto se agregó solo para medir y comparar dos modelos en la
         # actividad del Bloque 9. No es parte de la aplicación, es una
@@ -362,26 +403,28 @@ if __name__ == "__main__":
         # Mide un modelo por corrida. Para medir el otro candidato se
         # cambia AI_MODEL en el .env, y también los dos PRECIO_ de
         # arriba, porque no son los mismos para los dos modelos.
-        # PREGUNTA = ("¿Cuántos días de vacaciones corresponden por año en "
-        #             "Chile? Responde en una línea.")
-
-        # latencias, fallas, texto_m, costo, uso = obtener_dato_de_prueba(pregunta, INSTRUCCION)
-
+        #
+        # PREGUNTA = ("¿Cuántos días de vacaciones corresponden por "
+        #             "año en Chile? Responde en una línea.")
+        #
+        # latencias, fallas, texto_m, costo_m, uso_m = medir_latencia(
+        #     PREGUNTA, INSTRUCCION)
+        #
         # titulobn(f"\nModelo medido  {os.getenv('AI_MODEL')}")
-
+        #
         # for numero, segundos in enumerate(latencias, 1):
         #     exitobn(f"Medición {numero:>2}       {segundos:.2f} s")
-
+        #
         # exitobn(f"\nRespondieron      {len(latencias)} de "
         #         f"{len(latencias) + fallas}")
-
+        #
         # if latencias:
-        #     exitobn(f"Latencia promedio {sum(latencias)/len(latencias):.2f} s")
+        #     promedio = sum(latencias) / len(latencias)
+        #     exitobn(f"Latencia promedio {promedio:.2f} s")
         #     exitobn(f"Costo             {costo_m:.8f} USD")
         #     exitobn(f"Tokens entrada    {uso_m['promptTokenCount']}")
         #     exitobn(f"Tokens salida     {uso_m['candidatesTokenCount']}")
         #     exitobn(f"Total tokens      {uso_m['totalTokenCount']}")
-        #     exitobn(f"usageMetadata completo  {uso_m}")
         #     salbn(f"\nÚltima respuesta recibida:\n{texto_m}")
         # ===== FIN BLOQUE 9 ========================================
 

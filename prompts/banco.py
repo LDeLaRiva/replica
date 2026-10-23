@@ -34,15 +34,16 @@ BANCO_DE_PROMPTS = [
             "Responde solo lo que se pregunta, sin agregar "
             "información que no se haya pedido. No menciones "
             "excepciones, reglas regionales ni casos especiales "
-            "salvo que la pregunta los mencione. Si no puedes "
-            "identificar la fuente exacta, responde no "
+            "salvo que la pregunta los mencione. No afirmes nada "
+            "que no puedas atribuir a la norma que citas. Si no "
+            "puedes identificar la fuente exacta, responde no "
             "identificado en vez de suponerla. "
             # Formato
             "Responde únicamente con un objeto JSON válido, sin "
             "texto adicional y sin bloques de markdown. Las "
             "claves son 'respuesta' (string, máximo dos "
-            "oraciones) y 'fuente' (string, el documento y la "
-            "parte exacta, por ejemplo Código del Trabajo "
+            "oraciones) y 'fuente' (string, el documento y el "
+            "artículo, por ejemplo Código del Trabajo "
             "artículo 67, o Dictamen 5641/2015 de la Dirección "
             "del Trabajo)."
         ),
@@ -114,7 +115,9 @@ BANCO_DE_PROMPTS = [
             # Contexto
             "No opines si la cláusula cumple o no la ley. Esa "
             "evaluación la hace el programa comparando con el "
-            "texto legal. "
+            "texto legal. Si la cláusula no establece ninguna "
+            "cantidad, usa 0 en valor y la palabra ninguna en "
+            "unidad. "
             # Formato
             "Responde únicamente con un objeto JSON válido, sin "
             "texto adicional y sin bloques de markdown. Las "

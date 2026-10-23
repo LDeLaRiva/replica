@@ -4,22 +4,38 @@ Ejecuta cada prompt varias veces contra la API real y cuenta cuántas
 respuestas llegaron como JSON válido y con las claves que el propio
 prompt declara.
 
-Se ejecuta desde la raíz del repositorio con:
+Se puede ejecutar de las dos formas, con el mismo resultado:
     python -m prompts.test_consistencia
+    python prompts/test_consistencia.py
 """
 
 import json
+import sys
 import time
 from datetime import datetime
+from pathlib import Path
 
-from prompts.banco import BANCO_DE_PROMPTS
-from src.consumir_gemini import (
+# Este archivo vive en prompts/ y el módulo en src/. Al ejecutarlo
+# directamente, Python solo mira la carpeta de este archivo y no
+# encontraría src/. Agregar la raíz del repositorio permite las dos
+# formas de ejecución.
+RAIZ = Path(__file__).resolve().parent.parent
+if str(RAIZ) not in sys.path:
+    sys.path.insert(0, str(RAIZ))
+
+from prompts.banco import BANCO_DE_PROMPTS          # noqa: E402
+from src.consumir_gemini import (                   # noqa: E402
     armar_peticion,
     enviar_peticion,
     extraer_texto,
     parsear_respuesta_json,
 )
-from src.contraste import *
+from src.contraste import *                         # noqa: E402, F403
+
+# La ruta se arma desde la raíz y no como texto suelto, para que el
+# registro caiga siempre en el mismo lugar sin importar desde qué
+# carpeta se ejecute.
+ARCHIVO_REGISTRO = RAIZ / "prompts" / "registro_resultados.json"
 
 REPETICIONES = 5
 PAUSA = 5
@@ -29,7 +45,7 @@ MOSTRAR_RESPUESTAS = True
 
 # Imprime la plantilla del documento de ajustes. Se enciende solo
 # cuando hubo un cambio que documentar.
-PLANTILLA_AJUSTE = True
+PLANTILLA_AJUSTE = False
 
 registro = {}
 
@@ -68,6 +84,12 @@ for prompt in BANCO_DE_PROMPTS:
         except (ValueError, RuntimeError) as fallo:
             avisofn(f"  intento {intento + 1} falló. {fallo}")
 
+        # Una falla rara no debe botar la medición completa y dejar
+        # sin registro las repeticiones ya hechas.
+        except Exception as fallo:
+            errorfn(f"  intento {intento + 1} error inesperado. "
+                    f"{type(fallo).__name__}")
+
         time.sleep(PAUSA)
 
     if exitos == REPETICIONES:
@@ -91,8 +113,7 @@ salida = {
     "resultados": registro,
 }
 
-with open("prompts/registro_resultados.json", "w",
-          encoding="utf-8") as archivo:
+with open(ARCHIVO_REGISTRO, "w", encoding="utf-8") as archivo:
     json.dump(salida, archivo, indent=2, ensure_ascii=False)
 
 titulobn("\nRegistro guardado en prompts/registro_resultados.json")
