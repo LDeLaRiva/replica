@@ -79,7 +79,7 @@ try:
     lilabn(f"  Total de tokens    "
            f"{uso.get('totalTokenCount', 'no informado')}")
     lilabn(f"  Costo estimado     {costo:.8f} USD")
-    avisobn("\nProceso terminado.")
+    notabn("\nProceso terminado.")
 
 except (ValueError, RuntimeError) as fallo:
     avisofn(f"\n{fallo}")

@@ -1,8 +1,9 @@
 """Consulta a la API de Gemini.
 
 Cada error que lanza este módulo lleva un mensaje con dos partes,
-separadas por un salto de línea. La primera es para el usuario final y la
-segunda, marcada con [técnico], es el detalle para quien programa.
+separadas por un salto de línea. La marcada con [usuario] es para el
+usuario final y la marcada con [técnico] es el detalle para quien
+programa.
 
 Por ahora las dos se imprimen juntas, porque esto corre en terminal y no
 hay todavía un usuario distinto de quien desarrolla. Es una simulación.
@@ -32,7 +33,8 @@ load_dotenv()
 LARGO_MAXIMO = 15000  # provisional, se ajustará con uso real
 
 
-MENSAJE_GENERICO = ("USUARIO: No pudimos completar tu consulta. Intenta nuevamente en unos minutos.")
+MENSAJE_GENERICO = ("[usuario] No pudimos completar tu consulta. "
+                    "Intenta nuevamente en unos minutos.")
 
 INSTRUCCION = "Responde siempre en idioma español."
 
@@ -96,15 +98,17 @@ def armar_peticion(pregunta, system_instruction, response_schema=None):
     """
     if not isinstance(pregunta, str):
         raise ValueError(
-            "Escribe tu consulta como texto.\n"
-            f"[técnico] La pregunta debe ser str, llegó {type(pregunta).__name__}.")
+            "[usuario] Escribe tu consulta como texto.\n"
+            f"[técnico] La pregunta debe ser str, llegó "
+            f"{type(pregunta).__name__}.")
     if not pregunta.strip():
         raise ValueError(
-            "Escribe tu consulta antes de enviar.\n"
+            "[usuario] Escribe tu consulta antes de enviar.\n"
             "[técnico] La pregunta está vacía o es solo espacios.")
     if len(pregunta) > LARGO_MAXIMO:
         raise ValueError(
-            f"Tu consulta es muy larga. El máximo son {LARGO_MAXIMO} caracteres.\n"
+            f"[usuario] Tu consulta es muy larga. El máximo son "
+            f"{LARGO_MAXIMO} caracteres.\n"
             f"[técnico] La pregunta tiene {len(pregunta)} caracteres.")
 
     api_key_gemini = os.getenv("AI_API_KEY")
@@ -161,11 +165,13 @@ def enviar_peticion(url, headers, body):
                                   timeout=120)
     except requests.exceptions.ConnectionError as fallo:
         raise RuntimeError(
-            "No hay conexión. Revisa tu internet e intenta de nuevo.\n"
+            "[usuario] No hay conexión. Revisa tu internet e "
+            "intenta de nuevo.\n"
             f"[técnico] ConnectionError. {fallo}")
     except requests.exceptions.Timeout as fallo:
         raise RuntimeError(
-            "El servicio está tardando mucho. Intenta en un momento.\n"
+            "[usuario] El servicio está tardando mucho. Intenta en "
+            "un momento.\n"
             f"[técnico] Timeout. {fallo}")
     except requests.exceptions.MissingSchema as fallo:
         raise RuntimeError(
@@ -274,7 +280,7 @@ def parsear_respuesta_json(texto, claves_esperadas):
 
     # Una lista también es JSON válido, y la revisión de abajo
     # buscaría en los valores en vez de en las claves. Sin esto una
-        # lista pasaría la revisión sin traer ninguna de las claves.
+    # lista pasaría la revisión sin traer ninguna de las claves.
     if not isinstance(datos, dict):
         raise ValueError(
             f"{MENSAJE_GENERICO}\n"
@@ -383,16 +389,19 @@ if __name__ == "__main__":
             "Explica qué es JSON en dos líneas.",
             INSTRUCCION)
         salbn(f"\nLa respuesta de Gemini es:\n{respuesta_gemini}")
-        titulobn(f"\nCosto estimado de la petición: {costo:.8f} USD")
 
         # Los tokens y el costo son información de desarrollo (igual que
-        # la línea [técnico]). Cuando se separe lo que ve el usuario, estos
-        # tres van con el lado técnico.
-        exitobn(f"\nTokens entrada    {uso['promptTokenCount']}")
-        exitobn(f"Tokens salida     {uso['candidatesTokenCount']}")
-        exitobn(f"Total tokens      {uso['totalTokenCount']}")
+        # la línea [técnico]). Cuando se separe lo que ve el usuario,
+        # estos cuatro van con el lado técnico. Van juntos en lila, la
+        # misma familia que usa el main para el consumo, y el cierre va
+        # en nota, el tono más apagado de la paleta, para que no compita
+        # con el resultado.
+        lilabn(f"\nTokens entrada    {uso['promptTokenCount']}")
+        lilabn(f"Tokens salida     {uso['candidatesTokenCount']}")
+        lilabn(f"Total tokens      {uso['totalTokenCount']}")
+        lilabn(f"Costo estimado    {costo:.8f} USD")
 
-        avisobn("\nProceso terminado.")
+        notabn("\nProceso terminado.")
 
         # ===== BLOQUE 9 · MEDICIÓN TEMPORAL ========================
         # Esto se agregó solo para medir y comparar dos modelos en la
@@ -429,10 +438,10 @@ if __name__ == "__main__":
         # ===== FIN BLOQUE 9 ========================================
 
     except (ValueError, RuntimeError) as fallo:
-        # El mensaje trae las dos partes juntas, la del usuario y el
-        # detalle marcado con [técnico]. Hoy se imprimen las dos porque
-        # es una simulación en terminal. Más adelante se definirá cómo se
-        # muestra cada parte por separado.
+        # El mensaje trae las dos partes juntas, la marcada con
+        # [usuario] y la marcada con [técnico]. Hoy se imprimen las dos
+        # porque es una simulación en terminal. Más adelante se definirá
+        # cómo se muestra cada parte por separado.
         avisofn(f"\n{fallo}")
 
     except Exception as fallo:

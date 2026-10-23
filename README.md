@@ -10,7 +10,7 @@ datos que el código puede usar directamente.
 | **Programa** | Especialización en Desarrollo con IA Generativa · Accenture y Skillnest |
 | **Entrega** | Gate 1 · Habilitación técnica · Módulo 1 |
 | **Participante** | Lorena De La Riva Lens |
-| **Repositorio** | https://github.com/USUARIO/REPOSITORIO |
+| **Repositorio** | https://github.com/LDeLaRiva/replica |
 | **Modelo** | `gemini-3.5-flash-lite` vía API REST directa |
 
 ---
@@ -472,14 +472,31 @@ revisar las respuestas una por una y no solo en el conteo.
 Verificación de que el proyecto se instala y ejecuta desde cero, en
 una carpeta nueva, siguiendo únicamente este documento.
 
-- **Fecha** · (completar)
-- **Procedimiento** · clonado en limpio del repositorio remoto,
-  entorno virtual nuevo, instalación exclusivamente desde
-  `requirements.txt`, `.env` creado a partir de la plantilla y
-  ejecución de `main.py`.
-- **Hallazgos** · (completar, o "sin hallazgos")
-- **Corrección aplicada** · (completar, o "no aplica")
-- **Resultado** · (completar)
+## Registro del ensayo de instalación limpia
+
+Verificación de que el proyecto se instala y ejecuta desde cero, en
+una carpeta nueva, siguiendo únicamente este documento.
+
+- **Fecha** · 23 de octubre de 2026
+- **Procedimiento** · clonado en limpio del repositorio remoto en una
+  carpeta vacía, entorno virtual nuevo, instalación exclusivamente
+  desde `requirements.txt`, `.env` creado a partir de la plantilla, y
+  ejecución de `main.py` y de la prueba de consistencia siguiendo los
+  seis pasos de este README.
+- **Hallazgos** · dos imprecisiones en la documentación, ninguna
+  bloqueó la instalación ni la ejecución. La tabla del encabezado de
+  este README conservaba el marcador `USUARIO/REPOSITORIO` sin
+  reemplazar. El comentario de `.env.example` nombraba proveedores
+  que el proyecto no utiliza.
+- **Corrección aplicada** · se reemplazó el marcador por la dirección
+  real del repositorio y se reescribió el comentario de
+  `.env.example` indicando el proveedor correcto y dónde obtener la
+  credencial.
+- **Resultado** · la instalación completó sin errores con los
+  veintiséis paquetes declarados. `main.py` devolvió una respuesta
+  real del modelo con su costo. La prueba de consistencia obtuvo
+  20 de 20 respuestas válidas. `git status` dentro del clon confirmó
+  que `.env`, el entorno virtual y las cachés quedan excluidos.
 ---
 
 ## Errores frecuentes
