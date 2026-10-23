@@ -307,6 +307,10 @@ responsabilidad cada una.
 | `parsear_respuesta_json` | limpia, interpreta y verifica que estén las claves esperadas |
 | `calcular_costo_peticion` | convierte los tokens informados por la API en el costo de la llamada |
 
+La elección del modelo y su comparación con el candidato alternativo
+están en [docs/decision-arquitectura.md](docs/decision-arquitectura.md),
+con las mediciones de latencia, costo y calidad que la respaldan.
+
 `src/consumir_gemini.py` conserva comentada la función
 `medir_latencia`, que produjo los datos de latencia y costo de
 `docs/decision-arquitectura.md`. No forma parte de la aplicación,
