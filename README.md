@@ -267,6 +267,14 @@ comando que permite comprobarlo.
 
 Comprobación adicional de seguridad.
 
+**Windows (PowerShell)**
+
+```powershell
+git ls-files | findstr .env
+```
+
+**macOS, Linux o WSL**
+
 ```bash
 git ls-files | grep .env
 ```
