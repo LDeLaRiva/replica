@@ -137,7 +137,7 @@ después del signo igual, sin comillas y sin espacios.
 
 ```dotenv
 AI_API_KEY=clave_real_aqui
-AI_MODEL=gemini-3.5-flash-lite
+AI_MODEL="gemini-3.5-flash-lite"
 ```
 
 > [!NOTE]
@@ -195,7 +195,7 @@ repositorio.
 
 ---
 
-## Salida esperada
+## Salida esperada de la ejecución
 
 Una consulta real a la API, con la respuesta en bruto y la misma
 respuesta ya convertida en diccionario de Python.
@@ -392,7 +392,7 @@ deben verse.
 `src/contraste.py` genera los colores en RGB exacto, sin librerías
 externas. Es una decisión de accesibilidad. Los contrastes de alta
 luminancia, como el texto blanco o los colores saturados sobre fondo
-oscuro, dificultan la lectura a quienes tienen fotosensibilidad. Por
+oscuro, dificultan la lectura cuando se padece de fotosensibilidad. Por
 eso los tonos usan texto oscuro sobre fondos suaves, definidos para
 una terminal de fondo claro.
 
