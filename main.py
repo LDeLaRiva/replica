@@ -56,15 +56,15 @@ try:
     costo = calcular_costo_peticion(
         respuesta, PRECIO_ENTRADA, PRECIO_SALIDA)
 
-    titulobn(f"\nConsulta\n  {PREGUNTA}")
+    titulofn(f"\nConsulta\n  {PREGUNTA}")
 
     # El tipo va en las dos líneas porque mirándolos no se
     # distinguen. El crudo es un string escrito en formato JSON,
     # no un tipo JSON, que en Python no existe.
-    salbn(f"\nTexto crudo, tal como llegó   {type(texto)}"
+    salfn(f"\nTexto crudo, tal como llegó   {type(texto)}"
           f"\n  {texto}")
 
-    exitobn(f"\nYa convertido en diccionario   {type(datos)}")
+    exitofn(f"\nYa convertido en diccionario   {type(datos)}")
     exitot(datos)
 
     # Consumo de esta llamada. Es información de desarrollo, igual
@@ -73,13 +73,13 @@ try:
     # informa la API y no siempre es la suma de los otros dos,
     # porque puede incluir tokens que no se desglosan.
     uso = respuesta["usageMetadata"]
-    lilabn("\nConsumo de esta petición")
-    lilabn(f"  Tokens de entrada  {uso['promptTokenCount']}")
-    lilabn(f"  Tokens de salida   {uso['candidatesTokenCount']}")
-    lilabn(f"  Total de tokens    "
+    lilafn("\nConsumo de esta petición")
+    lilafn(f"  Tokens de entrada  {uso['promptTokenCount']}")
+    lilafn(f"  Tokens de salida   {uso['candidatesTokenCount']}")
+    lilafn(f"  Total de tokens    "
            f"{uso.get('totalTokenCount', 'no informado')}")
-    lilabn(f"  Costo estimado     {costo:.8f} USD")
-    notabn("\nProceso terminado.")
+    lilafn(f"  Costo estimado     {costo:.8f} USD")
+    notafn("\nProceso terminado.")
 
 except (ValueError, RuntimeError) as fallo:
     avisofn(f"\n{fallo}")

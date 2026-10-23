@@ -51,7 +51,7 @@ registro = {}
 
 for prompt in BANCO_DE_PROMPTS:
     exitos = 0
-    titulobn(f"\n{prompt['nombre']}")
+    titulofn(f"\n{prompt['nombre']}")
 
     for intento in range(REPETICIONES):
         try:
@@ -79,7 +79,7 @@ for prompt in BANCO_DE_PROMPTS:
                 # propias claves, así que se calcula en cada vuelta.
                 ancho = max(len(clave) for clave in datos)
                 for clave, valor in datos.items():
-                    salbn(f"    {clave:<{ancho}}  {valor}")
+                    salfn(f"    {clave:<{ancho}}  {valor}")
 
         except (ValueError, RuntimeError) as fallo:
             avisofn(f"  intento {intento + 1} falló. {fallo}")
@@ -93,7 +93,7 @@ for prompt in BANCO_DE_PROMPTS:
         time.sleep(PAUSA)
 
     if exitos == REPETICIONES:
-        exitobn(f"  {exitos}/{REPETICIONES} respuestas válidas")
+        exitofn(f"  {exitos}/{REPETICIONES} respuestas válidas")
     else:
         avisofn(f"  {exitos}/{REPETICIONES} respuestas válidas")
 
@@ -116,17 +116,17 @@ salida = {
 with open(ARCHIVO_REGISTRO, "w", encoding="utf-8") as archivo:
     json.dump(salida, archivo, indent=2, ensure_ascii=False)
 
-titulobn("\nRegistro guardado en prompts/registro_resultados.json")
+titulofn("\nRegistro guardado en prompts/registro_resultados.json")
 
 # Filas en formato markdown, para copiarlas al documento de ajustes
 # sin transcribir los números a mano.
-salbn("\nPara pegar en docs/ajustes-prompts.md")
+salfn("\nPara pegar en docs/ajustes-prompts.md")
 for nombre, resultado in registro.items():
-    salbn(f"| {hoy} | {nombre} | "
+    salfn(f"| {hoy} | {nombre} | "
           f"{resultado['exitos']}/{resultado['intentos']} |")
 
 if PLANTILLA_AJUSTE:
-    salbn(f"""
+    salfn(f"""
 ## Iteración N — (título corto del cambio)
 
 **Fecha.** {hoy}
@@ -140,5 +140,5 @@ if PLANTILLA_AJUSTE:
 
 **Resultado.**""")
     for nombre, resultado in registro.items():
-        salbn(f"{nombre}  "
+        salfn(f"{nombre}  "
               f"{resultado['exitos']}/{resultado['intentos']}")

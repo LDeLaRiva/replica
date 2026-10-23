@@ -384,11 +384,11 @@ if __name__ == "__main__":
     # atrapar Exception dentro de una función taparía errores de
     # programación míos justo donde necesito verlos.
     try:
-        titulobn(f"\nAI_MODEL usado  ->  {os.getenv('AI_MODEL')}")
+        titulofn(f"\nAI_MODEL usado  ->  {os.getenv('AI_MODEL')}")
         respuesta_gemini, costo, uso = obtener_dato_de_prueba(
             "Explica qué es JSON en dos líneas.",
             INSTRUCCION)
-        salbn(f"\nLa respuesta de Gemini es:\n{respuesta_gemini}")
+        salfn(f"\nLa respuesta de Gemini es:\n{respuesta_gemini}")
 
         # Los tokens y el costo son información de desarrollo (igual que
         # la línea [técnico]). Cuando se separe lo que ve el usuario,
@@ -396,12 +396,12 @@ if __name__ == "__main__":
         # misma familia que usa el main para el consumo, y el cierre va
         # en nota, el tono más apagado de la paleta, para que no compita
         # con el resultado.
-        lilabn(f"\nTokens entrada    {uso['promptTokenCount']}")
-        lilabn(f"Tokens salida     {uso['candidatesTokenCount']}")
-        lilabn(f"Total tokens      {uso['totalTokenCount']}")
-        lilabn(f"Costo estimado    {costo:.8f} USD")
+        lilafn(f"\nTokens entrada    {uso['promptTokenCount']}")
+        lilafn(f"Tokens salida     {uso['candidatesTokenCount']}")
+        lilafn(f"Total tokens      {uso['totalTokenCount']}")
+        lilafn(f"Costo estimado    {costo:.8f} USD")
 
-        notabn("\nProceso terminado.")
+        notafn("\nProceso terminado.")
 
         # ===== BLOQUE 9 · MEDICIÓN TEMPORAL ========================
         # Esto se agregó solo para medir y comparar dos modelos en la
