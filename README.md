@@ -9,7 +9,7 @@ datos que el código puede usar directamente.
 |---|---|
 | **Programa** | Especialización en Desarrollo con IA Generativa · Accenture y Skillnest |
 | **Entrega** | Gate 1 · Habilitación técnica · Módulo 1 |
-| **Participante** | Lorena De La Riva Lens |
+| **Participante** | Lorena De La Riva |
 | **Repositorio** | https://github.com/LDeLaRiva/replica |
 | **Modelo** | `gemini-3.5-flash-lite` vía API REST directa |
 
@@ -68,9 +68,12 @@ completos.
 ### Paso 1 · Clonar el repositorio
 
 ```bash
-git clone https://github.com/LDeLaRiva/replica.git
-cd REPLICA
+git clone https://github.com/LDeLaRiva/replica.git replica
+cd replica
 ```
+
+El nombre al final del comando fija cómo se llama la carpeta, de
+modo que el `cd` funciona igual en Windows, macOS y Linux.
 
 ### Paso 2 · Crear y activar el entorno virtual
 
@@ -274,7 +277,16 @@ El único resultado debe ser `.env.example`.
 
 ## Arquitectura
 
-![Diagrama de arquitectura](docs/diagrama_arquitectura.png)
+*Actualizado para el Gate 1.*
+
+El diagrama cubre `src/consumir_gemini.py`, que es donde ocurre
+todo el consumo de la API.
+
+![Arquitectura de consumir_gemini.py](docs/diagrama_arquitectura_actualizado.png)
+
+El repositorio conserva además `docs/diagrama_arquitectura.png`, que
+es la versión del Bloque 8. Se mantiene porque corresponde a la
+entrega de esa actividad y porque otro documento la referencia.
 
 El consumo de la API está separado en funciones con una
 responsabilidad cada una.
@@ -313,9 +325,12 @@ prompts/
   registro_resultados.json  resultado de la última medición
 
 docs/
-  diagrama_arquitectura.png diagrama del flujo de una consulta
-  decision-arquitectura.md  comparación de modelos y costos
-  ajustes-prompts.md        las ocho iteraciones de los prompts
+  diagrama_arquitectura_actualizado.png  el diagrama al día del Gate 1
+  diagrama_arquitectura.png              la versión del Bloque 8, que
+                                         se conserva como entrega de
+                                         esa actividad
+  decision-arquitectura.md               comparación de modelos y costos
+  ajustes-prompts.md                     las ocho iteraciones de los prompts
   U1.2_B4_evidencia_peticion_autenticada.png
   U1.2_B4-2_evidencia_peticion_autenticada.png
 ```
@@ -329,20 +344,25 @@ Se crea localmente en el paso 4.
 
 ### Los mensajes de error tienen dos destinatarios
 
-Cada error lleva una línea dirigida a quien usa el programa y otra
-marcada con `[técnico]` para quien lo mantiene.
+Los errores que el módulo lanza llevan dos líneas. La marcada con
+`[usuario]` es para quien usa el programa y la marcada con
+`[técnico]` para quien lo mantiene.
 
 ```text
-USUARIO: No pudimos completar tu consulta. Intenta nuevamente en
+[usuario] No pudimos completar tu consulta. Intenta nuevamente en
 unos minutos.
 [técnico] El servicio respondió 429: RESOURCE_EXHAUSTED quota
 ```
 
 El criterio distingue tres situaciones. Cuando la persona puede
-resolver el problema, se le indica cómo. Cuando no puede resolverlo
-pero reintentar es razonable, se entrega el mensaje genérico. Cuando
-el error solo puede originarse en el código, no lleva mensaje de
-usuario, porque no hay usuario capaz de resolverlo.
+resolver el problema, la línea de usuario le indica cómo. Cuando no
+puede resolverlo pero reintentar es razonable, recibe el mensaje
+genérico. Cuando el error solo puede originarse en el código, no
+lleva línea de usuario, porque no hay usuario capaz de resolverlo.
+
+Esa tercera situación no corresponde a ningún `raise` del módulo,
+sino al `except Exception` del borde, que informa el tipo de la
+excepción y nada más.
 
 Por ahora las dos líneas se imprimen juntas, dado que la aplicación
 corre en terminal y todavía no existe una interfaz que las separe.
@@ -466,11 +486,6 @@ válida. Por esa razón las iteraciones documentadas se apoyan en
 revisar las respuestas una por una y no solo en el conteo.
 
 ---
-
-## Registro del ensayo de instalación limpia
-
-Verificación de que el proyecto se instala y ejecuta desde cero, en
-una carpeta nueva, siguiendo únicamente este documento.
 
 ## Registro del ensayo de instalación limpia
 
