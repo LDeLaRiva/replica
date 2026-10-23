@@ -54,9 +54,7 @@ detallan en [Limitaciones conocidas](#limitaciones-conocidas).
   costo en https://aistudio.google.com/apikey . El plan gratuito es
   suficiente para ejecutar este proyecto.
 Las dependencias están declaradas en `requirements.txt` y se
-instalan en el paso 3. El código importa dos librerías externas,
-`requests` y `python-dotenv`. El resto corresponde a la biblioteca
-estándar de Python.
+instalan en el paso 3.
 
 ---
 
@@ -182,6 +180,7 @@ En macOS, Linux o WSL, `python3 main.py`.
 ```bash
 python -m prompts.test_consistencia
 ```
+En macOS, Linux o WSL, `python3 -m prompts.test_consistencia`.
 
 Ejecuta los cuatro prompts cinco veces cada uno contra la API real y
 cuenta cuántas respuestas llegaron con la estructura esperada. Son
@@ -379,11 +378,19 @@ excepción y nada más.
 Por ahora las dos líneas se imprimen juntas, dado que la aplicación
 corre en terminal y todavía no existe una interfaz que las separe.
 
-### El manejo de errores reside en el borde
 
-Las funciones del módulo lanzan excepciones pero no imprimen. El
-único que imprime es `main.py`, por ser el único que conoce cómo
-presentar información a una persona. Capturar `Exception` dentro de
+### El manejo de errores reside en el borde, no en las funciones
+
+Ninguna función de `src/consumir_gemini.py` imprime. Lanzan la
+excepción y se detienen ahí. Quien imprime es siempre el archivo
+desde el que se ejecuta, y hay tres, `main.py`, la prueba del propio
+`src/consumir_gemini.py` y la medición de
+`prompts/test_consistencia.py`. Cada uno tiene su `try` en el borde y
+decide ahí cómo mostrar lo que le llegó.
+
+Esa separación es el punto. Una función no sabe quién la llama ni
+dónde va a terminar su mensaje, de modo que no le corresponde decidir
+cómo se le presenta a una persona. Y capturar `Exception` dentro de
 una función ocultaría errores de programación precisamente donde
 deben verse.
 
