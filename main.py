@@ -81,7 +81,7 @@ try:
     lilafn(f"  Costo estimado     {costo:.8f} USD")
     notafn("\nProceso terminado.")
 
-except (ValueError, RuntimeError) as fallo:
+except (ValueError, RuntimeError, TimeoutError) as fallo:
     avisofn(f"\n{fallo}")
 
 except Exception as fallo:

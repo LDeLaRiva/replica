@@ -81,7 +81,7 @@ for prompt in BANCO_DE_PROMPTS:
                 for clave, valor in datos.items():
                     salfn(f"    {clave:<{ancho}}  {valor}")
 
-        except (ValueError, RuntimeError) as fallo:
+        except (ValueError, RuntimeError, TimeoutError) as fallo:
             avisofn(f"  intento {intento + 1} falló. {fallo}")
 
         # Una falla rara no debe botar la medición completa y dejar
