@@ -1,6 +1,6 @@
 """Cliente del proyecto. Una sola puerta de entrada al modelo.
 
-pra hacer una consulta había que llamar a las funciones
+para hacer una consulta había que llamar a las funciones
 de src.consumir_gemini en el orden correcto y saber qué podía fallar
 en cada una. Este archivo envuelve todo eso en consultar_modelo, que
 recibe una pregunta y devuelve la respuesta ya lista.
