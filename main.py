@@ -56,15 +56,15 @@ try:
     costo = calcular_costo_peticion(
         respuesta, PRECIO_ENTRADA, PRECIO_SALIDA)
 
-    titulofn(f"\nConsulta\n  {PREGUNTA}")
+    titulobn(f"\nConsulta\n  {PREGUNTA}")
 
     # El tipo va en las dos líneas porque mirándolos no se
     # distinguen. El crudo es un string escrito en formato JSON,
     # no un tipo JSON, que en Python no existe.
-    salfn(f"\nTexto crudo, tal como llegó   {type(texto)}"
+    salbn(f"\nTexto crudo, tal como llegó   {type(texto)}"
           f"\n  {texto}")
 
-    exitofn(f"\nYa convertido en diccionario   {type(datos)}")
+    exitobn(f"\nYa convertido en diccionario   {type(datos)}")
     exitot(datos)
 
     # Consumo de esta llamada. Es información de desarrollo, igual
@@ -74,16 +74,16 @@ try:
     # porque puede incluir tokens que no se desglosan.
     uso = respuesta["usageMetadata"]
     lilafn("\nConsumo de esta petición")
-    lilafn(f"  Tokens de entrada  {uso['promptTokenCount']}")
-    lilafn(f"  Tokens de salida   {uso['candidatesTokenCount']}")
-    lilafn(f"  Total de tokens    "
+    lilabn(f"  Tokens de entrada  {uso['promptTokenCount']}")
+    lilabn(f"  Tokens de salida   {uso['candidatesTokenCount']}")
+    lilabn(f"  Total de tokens    "
            f"{uso.get('totalTokenCount', 'no informado')}")
-    lilafn(f"  Costo estimado     {costo:.8f} USD")
-    notafn("\nProceso terminado.")
+    lilabn(f"  Costo estimado     {costo:.8f} USD")
+    notabn("\nProceso terminado.")
 
 except (ValueError, RuntimeError, TimeoutError) as fallo:
-    avisofn(f"\n{fallo}")
+    avisobn(f"\n{fallo}")
 
 except Exception as fallo:
     errorfn(f"\nError inesperado. {type(fallo).__name__}")
-    avisofn(f"\n{fallo}")
+    avisobn(f"\n{fallo}")

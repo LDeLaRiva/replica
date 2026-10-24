@@ -37,21 +37,21 @@ from src.contraste import *                         # noqa: E402, F403
 # carpeta se ejecute.
 ARCHIVO_REGISTRO = RAIZ / "prompts" / "registro_resultados.json"
 
-REPETICIONES = 5
-PAUSA = 5
+REPETICIONES = 2
+PAUSA = 0
 
 # Muestra el contenido de cada respuesta, no solo el conteo.
 MOSTRAR_RESPUESTAS = True
 
 # Imprime la plantilla del documento de ajustes. Se enciende solo
 # cuando hubo un cambio que documentar.
-PLANTILLA_AJUSTE = False
+PLANTILLA_AJUSTE = True
 
 registro = {}
 
 for prompt in BANCO_DE_PROMPTS:
     exitos = 0
-    titulofn(f"\n{prompt['nombre']}")
+    titulobn(f"\n{prompt['nombre']}")
 
     for intento in range(REPETICIONES):
         try:
@@ -79,7 +79,7 @@ for prompt in BANCO_DE_PROMPTS:
                 # propias claves, así que se calcula en cada vuelta.
                 ancho = max(len(clave) for clave in datos)
                 for clave, valor in datos.items():
-                    salfn(f"    {clave:<{ancho}}  {valor}")
+                    salbn(f"    {clave:<{ancho}}  {valor}")
 
         except (ValueError, RuntimeError, TimeoutError) as fallo:
             avisofn(f"  intento {intento + 1} falló. {fallo}")
@@ -93,7 +93,7 @@ for prompt in BANCO_DE_PROMPTS:
         time.sleep(PAUSA)
 
     if exitos == REPETICIONES:
-        exitofn(f"  {exitos}/{REPETICIONES} respuestas válidas")
+        exitobn(f"  {exitos}/{REPETICIONES} respuestas válidas")
     else:
         avisofn(f"  {exitos}/{REPETICIONES} respuestas válidas")
 
@@ -113,20 +113,30 @@ salida = {
     "resultados": registro,
 }
 
+# Si no hubo ni una respuesta válida, lo más probable es que el
+# problema sea de configuración y no de los prompts. Escribir ceros
+# en ese caso borraría una medición buena y no aportaría ninguna,
+# así que el archivo se deja como estaba.
+if sum(r["exitos"] for r in registro.values()) == 0:
+    errorfn("\nNinguna respuesta válida en toda la medición.")
+    avisofn("\nEl registro no se modificó. Revisa la configuración "
+            "y vuelve a correr.")
+    raise SystemExit(1)
+
 with open(ARCHIVO_REGISTRO, "w", encoding="utf-8") as archivo:
     json.dump(salida, archivo, indent=2, ensure_ascii=False)
 
-titulofn("\nRegistro guardado en prompts/registro_resultados.json")
+titulobn("\nRegistro guardado en prompts/registro_resultados.json")
 
 # Filas en formato markdown, para copiarlas al documento de ajustes
 # sin transcribir los números a mano.
-salfn("\nPara pegar en docs/ajustes-prompts.md")
+salbn("\nPara pegar en docs/ajustes-prompts.md")
 for nombre, resultado in registro.items():
-    salfn(f"| {hoy} | {nombre} | "
+    salbn(f"| {hoy} | {nombre} | "
           f"{resultado['exitos']}/{resultado['intentos']} |")
 
 if PLANTILLA_AJUSTE:
-    salfn(f"""
+    salbn(f"""
 ## Iteración N — (título corto del cambio)
 
 **Fecha.** {hoy}
@@ -140,5 +150,5 @@ if PLANTILLA_AJUSTE:
 
 **Resultado.**""")
     for nombre, resultado in registro.items():
-        salfn(f"{nombre}  "
+        salbn(f"{nombre}  "
               f"{resultado['exitos']}/{resultado['intentos']}")

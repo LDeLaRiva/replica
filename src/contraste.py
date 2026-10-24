@@ -60,17 +60,24 @@ def color(texto, tono="verde", negrita=True):
         print(f"{estilo}{linea}{RESET}" if linea.strip() else "")
 
 def barra(texto, tono="verde", negrita=True):
-    """Barra de color al inicio de cada línea, también en las que se parten."""
-    oscuro, _ = TONOS[tono]
+    """Barra de color al inicio de cada línea, también en las que se parten.
+
+    El fondo suave va detrás del texto, no solo el color de la letra.
+    Sin fondo, el texto oscuro queda ilegible en una terminal de tema
+    oscuro, porque el contraste cae de 10 a 1,5, y el mínimo legible
+    es 4,5. Con el fondo puesto se lee igual en cualquier tema, porque
+    el color del editor deja de participar.
+    """
+    oscuro, claro = TONOS[tono]
     marca = f"{_fondo(oscuro)}   {RESET}"
-    estilo = _texto(oscuro, negrita)
+    estilo = f"{_fondo(claro)}{_texto(oscuro, negrita)}"
     ancho = max(shutil.get_terminal_size((80, 20)).columns - 5, 20)
     for parrafo in str(texto).split("\n"):
         if not parrafo.strip():
             print()
             continue
         for linea in textwrap.wrap(parrafo, ancho):
-            print(f"{marca} {estilo}{linea}{RESET}")
+            print(f"{marca}{estilo} {linea} {RESET}")
 
 def tabla(pares, tono="verde", negrita=True):
     """Pares de clave y valor en columna, con el valor alineado.

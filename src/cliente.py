@@ -1,11 +1,11 @@
 """Cliente del proyecto. Una sola puerta de entrada al modelo.
 
-para hacer una consulta había que llamar a las funciones
+Hasta aquí, para hacer una consulta había que llamar a las funciones
 de src.consumir_gemini en el orden correcto y saber qué podía fallar
 en cada una. Este archivo envuelve todo eso en consultar_modelo, que
 recibe una pregunta y devuelve la respuesta ya lista.
 
-al usar este cliente no se necesita saber que por dentro hay un
+Quien use este cliente no necesita saber que por dentro hay un
 reintento, ni cuántas veces se reintentó, ni qué código de estado
 respondió el servicio.
 
@@ -69,14 +69,19 @@ def con_reintento(
     for intento in range(1, intentos + 1):
         try:
             return funcion()
-        except TimeoutError:
+        except TimeoutError as fallo:
             # En el último intento se deja pasar el error en vez de
             # taparlo. Sin esta salida el bucle reintentaría siempre y
             # nadie se enteraría de que algo sigue mal.
             if intento == intentos:
                 raise
-            avisar(f"Intento {intento} de {intentos} falló por límite "
-                   f"de uso o error de conexión. Reintentando...")
+            # TimeoutError cubre cuatro casos distintos, así que el
+            # aviso dice cuál fue. La etiqueta viene junto al error
+            # desde consumir_gemini. El valor por omisión cubre el
+            # caso de que el error llegue de otra parte y no la traiga.
+            causa = getattr(fallo, "causa", "una falla momentánea")
+            avisar(f"Intento {intento} de {intentos} falló por "
+                   f"{causa}. Reintentando en {espera_segundos}s...")
             time.sleep(espera_segundos)
 
 
@@ -124,10 +129,17 @@ def consultar_modelo(
     # conocer ese detalle interno, así que se traduce a un error
     # propio con un mensaje pensado para él.
     except TimeoutError as fallo:
+        # Del error original se toma solo su línea técnica, no el
+        # mensaje entero. Si se pegara completo quedaría un [usuario]
+        # metido adentro de un [técnico] y el bloque pasaría a tres
+        # líneas, rompiendo el formato de dos partes.
+        causa = getattr(fallo, "causa", "una falla momentánea")
+        detalle = str(fallo).split("\n")[-1].replace("[técnico] ", "")
         raise RuntimeError(
             "[usuario] El servicio no respondió después de varios "
             "intentos. Intenta más tarde.\n"
-            f"[técnico] Se agotaron los {INTENTOS} intentos. {fallo}")
+            f"[técnico] Se agotaron los {INTENTOS} intentos por "
+            f"{causa}. {detalle}")
 
     # El ValueError de la credencial no se toca. Sigue propagándose
     # tal cual, porque ya trae un mensaje claro desde enviar_peticion.
@@ -143,7 +155,7 @@ if __name__ == "__main__":
     # El módulo no usa colores, solo esta prueba.
     from src.contraste import *                         # noqa: E402, F403
 
-    # Los tres escenarios que se piden:
+    # Los tres escenarios que pide la actividad.
     #   1. consulta normal, es la que corre abajo
     #   2. credencial inválida, se prueba cambiando AI_API_KEY en el
     #      .env por cualquier cosa y volviendo a correr este archivo.
@@ -159,11 +171,11 @@ if __name__ == "__main__":
         notabn("\nProceso terminado.")
 
     except ValueError as fallo:
-        avisofn(f"\nError de configuración.\n{fallo}")
+        avisobn(f"\nError de configuración.\n{fallo}")
 
     except RuntimeError as fallo:
-        avisofn(f"\n{fallo}")
+        avisobn(f"\n{fallo}")
 
     except Exception as fallo:
-        errorfn(f"\nError inesperado. {type(fallo).__name__}")
-        avisofn(f"\n{fallo}")
+        errorbn(f"\nError inesperado. {type(fallo).__name__}")
+        avisobn(f"\n{fallo}")

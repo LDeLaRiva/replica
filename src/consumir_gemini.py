@@ -7,7 +7,7 @@ programa.
 
 Por ahora las dos se imprimen juntas, porque esto corre en terminal y no
 hay todavía un usuario distinto de quien desarrolla. Es una simulación.
-Más adelante se definirá cómo se muestra cada parte por separado.
+Más adelante cuando el material indique cómo, se definirá cómo debe mostrarse.
 
 Lo que depende del formato de Gemini está en armar_peticion,
 extraer_texto, calcular_costo_peticion y obtener_dato_de_prueba,
@@ -44,6 +44,26 @@ INSTRUCCION = "Responde siempre en idioma español."
 # si el proyecto pasara a pago.
 PRECIO_ENTRADA = 0.30 / 1_000_000
 PRECIO_SALIDA = 2.50 / 1_000_000
+
+
+def _momentaneo(causa, mensaje):
+    """Arma un TimeoutError con una etiqueta corta de la causa.
+
+    El guion bajo avisa que es de uso interno. La etiqueta la lee
+    con_reintento para decir en una sola línea por qué va a volver a
+    intentar, sin tener que imprimir el mensaje completo de dos
+    partes, que ocuparía tres líneas en cada reintento.
+
+    Args:
+        causa: unas pocas palabras, por ejemplo "el límite de uso".
+        mensaje: el mensaje de dos partes, igual que los demás.
+
+    Returns:
+        El TimeoutError listo para lanzar.
+    """
+    fallo = TimeoutError(mensaje)
+    fallo.causa = causa
+    return fallo
 
 
 def calcular_costo_peticion(datos, precio_entrada, precio_salida):
@@ -155,14 +175,16 @@ def enviar_peticion(url, headers, body):
         La respuesta del servicio, convertida en diccionario.
 
     Raises:
-        ValueError: si el servicio responde 401 o 403. La credencial no
-            sirve y volver a intentar no lo resuelve.
+        ValueError: si el servicio responde 401, 403 o 404. Son
+            problemas de credencial o de configuración, y volver a
+            intentar no los resuelve.
         TimeoutError: si falla la conexión, si se agota el tiempo de
             espera, o si el servicio responde 429 o 5xx. Son fallas
             momentáneas, por eso con_reintento las vuelve a intentar.
         RuntimeError: si la url está mal formada, si hay un bucle de
-            redirecciones, si el servicio responde otro código distinto
-            de 200, o si lo que devuelve no es JSON válido.
+            redirecciones, si el servicio responde cualquier otro
+            código distinto de 200, o si lo que devuelve no es JSON
+            válido.
     """
     try:
         respuesta = requests.post(url, headers=headers, json=body,
@@ -170,12 +192,14 @@ def enviar_peticion(url, headers, body):
     # Estos dos son momentáneos, así que van como TimeoutError para
     # que con_reintento sepa que vale la pena volver a intentar.
     except requests.exceptions.ConnectionError as fallo:
-        raise TimeoutError(
+        raise _momentaneo(
+            "falta de conexión",
             "[usuario] No hay conexión. Revisa tu internet e "
             "intenta de nuevo.\n"
             f"[técnico] ConnectionError. {fallo}")
     except requests.exceptions.Timeout as fallo:
-        raise TimeoutError(
+        raise _momentaneo(
+            "demora del servicio",
             "[usuario] El servicio está tardando mucho. Intenta en "
             "un momento.\n"
             f"[técnico] Timeout. {fallo}")
@@ -202,9 +226,20 @@ def enviar_peticion(url, headers, body):
     # nada, así que va como ValueError y con_reintento lo deja pasar.
     if respuesta.status_code in (401, 403):
         raise ValueError(
-            "[usuario] No pudimos completar tu consulta.Credencial inválida o sin permiso."
+            "[usuario] No podemos atender tu consulta. Credencial "
+            "inválida o sin permiso.\n"
             f"[técnico] El servicio respondió {respuesta.status_code}. "
-            f"Credencial inválida o sin permiso. Revisa AI_API_KEY en el .env")
+            f"Revisa AI_API_KEY en el .env")
+
+    # El modelo configurado no existe o la cuenta no lo tiene
+    # habilitado. Es configuración, igual que cuando falta AI_MODEL,
+    # así que va como ValueError. Esperar no lo resuelve.
+    if respuesta.status_code == 404:
+        raise ValueError(
+            "[usuario] No podemos atender tu consulta. Modelo no "
+            "disponible.\n"
+            f"[técnico] El servicio respondió 404. Revisa AI_MODEL "
+            f"en el .env")
 
     # Límite de uso o caída del proveedor. Los dos se resuelven
     # esperando, así que van como TimeoutError para que se reintenten.
@@ -212,7 +247,10 @@ def enviar_peticion(url, headers, body):
     if respuesta.status_code == 429 or respuesta.status_code >= 500:
         espera = respuesta.headers.get("Retry-After")
         sugerido = f" Sugiere esperar {espera}s." if espera else ""
-        raise TimeoutError(
+        causa = ("el límite de uso" if respuesta.status_code == 429
+                 else "una caída del proveedor")
+        raise _momentaneo(
+            causa,
             f"{MENSAJE_GENERICO}\n"
             f"[técnico] El servicio respondió "
             f"{respuesta.status_code}.{sugerido} "
@@ -410,11 +448,11 @@ if __name__ == "__main__":
     # atrapar Exception dentro de una función taparía errores de
     # programación míos justo donde necesito verlos.
     try:
-        titulobn(f"\nAI_MODEL usado  ->  {os.getenv('AI_MODEL')}")
+        titulofn(f"\nAI_MODEL usado  ->  {os.getenv('AI_MODEL')}")
         respuesta_gemini, costo, uso = obtener_dato_de_prueba(
             "Explica qué es JSON en dos líneas.",
             INSTRUCCION)
-        salbn(f"\nLa respuesta de Gemini es:\n{respuesta_gemini}")
+        salfn(f"\nLa respuesta de Gemini es:\n{respuesta_gemini}")
 
         # Los tokens y el costo son información de desarrollo (igual que
         # la línea [técnico]). Cuando se separe lo que ve el usuario,
@@ -422,12 +460,12 @@ if __name__ == "__main__":
         # misma familia que usa el main para el consumo, y el cierre va
         # en nota, el tono más apagado de la paleta, para que no compita
         # con el resultado.
-        lilabn(f"\nTokens entrada    {uso['promptTokenCount']}")
-        lilabn(f"Tokens salida     {uso['candidatesTokenCount']}")
-        lilabn(f"Total tokens      {uso['totalTokenCount']}")
-        lilabn(f"Costo estimado    {costo:.8f} USD")
+        lilafn(f"\nTokens entrada    {uso['promptTokenCount']}")
+        lilafn(f"Tokens salida     {uso['candidatesTokenCount']}")
+        lilafn(f"Total tokens      {uso['totalTokenCount']}")
+        lilafn(f"Costo estimado    {costo:.8f} USD")
 
-        notabn("\nProceso terminado.")
+        notafn("\nProceso terminado.")
 
         # ===== BLOQUE 9 · MEDICIÓN TEMPORAL ========================
         # Esto se agregó solo para medir y comparar dos modelos en la
@@ -466,8 +504,7 @@ if __name__ == "__main__":
     except (ValueError, RuntimeError, TimeoutError) as fallo:
         # El mensaje trae las dos partes juntas, la marcada con
         # [usuario] y la marcada con [técnico]. Hoy se imprimen las dos
-        # porque es una simulación en terminal. Más adelante se definirá
-        # cómo se muestra cada parte por separado.
+        # porque es una simulación en terminal.
         avisofn(f"\n{fallo}")
 
     except Exception as fallo:
