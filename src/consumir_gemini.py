@@ -46,26 +46,6 @@ PRECIO_ENTRADA = 0.30 / 1_000_000
 PRECIO_SALIDA = 2.50 / 1_000_000
 
 
-def _momentaneo(causa, mensaje):
-    """Arma un TimeoutError con una etiqueta corta de la causa.
-
-    El guion bajo avisa que es de uso interno. La etiqueta la lee
-    con_reintento para decir en una sola línea por qué va a volver a
-    intentar, sin tener que imprimir el mensaje completo de dos
-    partes, que ocuparía tres líneas en cada reintento.
-
-    Args:
-        causa: unas pocas palabras, por ejemplo "el límite de uso".
-        mensaje: el mensaje de dos partes, igual que los demás.
-
-    Returns:
-        El TimeoutError listo para lanzar.
-    """
-    fallo = TimeoutError(mensaje)
-    fallo.causa = causa
-    return fallo
-
-
 def calcular_costo_peticion(datos, precio_entrada, precio_salida):
     """Calcula el costo en dólares de una petición, según sus tokens.
 
@@ -192,14 +172,12 @@ def enviar_peticion(url, headers, body):
     # Estos dos son momentáneos, así que van como TimeoutError para
     # que con_reintento sepa que vale la pena volver a intentar.
     except requests.exceptions.ConnectionError as fallo:
-        raise _momentaneo(
-            "falta de conexión",
+        raise TimeoutError(
             "[usuario] No hay conexión. Revisa tu internet e "
             "intenta de nuevo.\n"
             f"[técnico] ConnectionError. {fallo}")
     except requests.exceptions.Timeout as fallo:
-        raise _momentaneo(
-            "demora del servicio",
+        raise TimeoutError(
             "[usuario] El servicio está tardando mucho. Intenta en "
             "un momento.\n"
             f"[técnico] Timeout. {fallo}")
@@ -247,10 +225,7 @@ def enviar_peticion(url, headers, body):
     if respuesta.status_code == 429 or respuesta.status_code >= 500:
         espera = respuesta.headers.get("Retry-After")
         sugerido = f" Sugiere esperar {espera}s." if espera else ""
-        causa = ("el límite de uso" if respuesta.status_code == 429
-                 else "una caída del proveedor")
-        raise _momentaneo(
-            causa,
+        raise TimeoutError(
             f"{MENSAJE_GENERICO}\n"
             f"[técnico] El servicio respondió "
             f"{respuesta.status_code}.{sugerido} "
@@ -261,7 +236,8 @@ def enviar_peticion(url, headers, body):
     if respuesta.status_code != 200:
         raise RuntimeError(
             f"{MENSAJE_GENERICO}\n"
-            f"[técnico] El servicio respondió {respuesta.status_code}: {respuesta.text[:300]}")
+            f"[técnico] El servicio respondió "
+            f"{respuesta.status_code}. {respuesta.text[:300]}")
 
     try:
         return respuesta.json()
@@ -375,7 +351,10 @@ def obtener_dato_de_prueba(pregunta, system_instruction, response_schema=None):
         bloque usageMetadata, en ese orden.
 
     Raises:
-        ValueError: los que lanza armar_peticion.
+        ValueError: los que lanza armar_peticion, y los que lanza
+            enviar_peticion cuando el servicio responde 401, 403 o 404.
+        TimeoutError: los que lanza enviar_peticion cuando la falla es
+            momentánea y vale la pena reintentar.
         RuntimeError: los que lanzan enviar_peticion y extraer_texto.
     """
     url, headers, body = armar_peticion(pregunta, system_instruction, response_schema)
@@ -448,11 +427,11 @@ if __name__ == "__main__":
     # atrapar Exception dentro de una función taparía errores de
     # programación míos justo donde necesito verlos.
     try:
-        titulofn(f"\nAI_MODEL usado  ->  {os.getenv('AI_MODEL')}")
+        titulobn(f"\nAI_MODEL usado  ->  {os.getenv('AI_MODEL')}")
         respuesta_gemini, costo, uso = obtener_dato_de_prueba(
             "Explica qué es JSON en dos líneas.",
             INSTRUCCION)
-        salfn(f"\nLa respuesta de Gemini es:\n{respuesta_gemini}")
+        salbn(f"\nLa respuesta de Gemini es:\n{respuesta_gemini}")
 
         # Los tokens y el costo son información de desarrollo (igual que
         # la línea [técnico]). Cuando se separe lo que ve el usuario,
@@ -460,12 +439,12 @@ if __name__ == "__main__":
         # misma familia que usa el main para el consumo, y el cierre va
         # en nota, el tono más apagado de la paleta, para que no compita
         # con el resultado.
-        lilafn(f"\nTokens entrada    {uso['promptTokenCount']}")
-        lilafn(f"Tokens salida     {uso['candidatesTokenCount']}")
-        lilafn(f"Total tokens      {uso['totalTokenCount']}")
-        lilafn(f"Costo estimado    {costo:.8f} USD")
+        lilabn(f"\nTokens entrada    {uso['promptTokenCount']}")
+        lilabn(f"Tokens salida     {uso['candidatesTokenCount']}")
+        lilabn(f"Total tokens      {uso['totalTokenCount']}")
+        lilabn(f"Costo estimado    {costo:.8f} USD")
 
-        notafn("\nProceso terminado.")
+        notabn("\nProceso terminado.")
 
         # ===== BLOQUE 9 · MEDICIÓN TEMPORAL ========================
         # Esto se agregó solo para medir y comparar dos modelos en la
@@ -508,5 +487,5 @@ if __name__ == "__main__":
         avisofn(f"\n{fallo}")
 
     except Exception as fallo:
-        errorfn(f"\nError inesperado. {type(fallo).__name__}")
+        avisofn(f"\nError inesperado. {type(fallo).__name__}")
         avisofn(f"\n{fallo}")

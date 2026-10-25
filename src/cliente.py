@@ -5,7 +5,7 @@ de src.consumir_gemini en el orden correcto y saber qué podía fallar
 en cada una. Este archivo envuelve todo eso en consultar_modelo, que
 recibe una pregunta y devuelve la respuesta ya lista.
 
-Quien use este cliente no necesita saber que por dentro hay un
+Al usar este cliente no se necesita saber que por dentro hay un
 reintento, ni cuántas veces se reintentó, ni qué código de estado
 respondió el servicio.
 
@@ -63,9 +63,19 @@ def con_reintento(
         Lo que devuelva la función en el primer intento que resulte.
 
     Raises:
+        ValueError: si intentos es menor que 1. Sin al menos un
+            intento no hay nada que ejecutar.
         TimeoutError: si se agotan todos los intentos. Lo vuelve a
             lanzar tal cual para que el error no quede escondido.
     """
+    # Con cero o menos, el bucle no corre ninguna vez y la función
+    # devolvería None sin avisar. Río abajo ese None reaparece como
+    # un TypeError confuso, lejos de donde está el problema real.
+    if intentos < 1:
+        raise ValueError(
+            "[usuario] No pudimos completar tu consulta. Intenta nuevamente en unos minutos.\n"
+            f"[técnico] intentos debe ser 1 o más, llegó {intentos}.")
+
     for intento in range(1, intentos + 1):
         try:
             return funcion()
@@ -75,13 +85,16 @@ def con_reintento(
             # nadie se enteraría de que algo sigue mal.
             if intento == intentos:
                 raise
-            # TimeoutError cubre cuatro casos distintos, así que el
-            # aviso dice cuál fue. La etiqueta viene junto al error
-            # desde consumir_gemini. El valor por omisión cubre el
-            # caso de que el error llegue de otra parte y no la traiga.
-            causa = getattr(fallo, "causa", "una falla momentánea")
-            avisar(f"Intento {intento} de {intentos} falló por "
-                   f"{causa}. Reintentando en {espera_segundos}s...")
+            # TimeoutError cubre cuatro casos, el 429, una caída del
+            # proveedor, la falta de conexión y que el servicio no
+            # conteste. El aviso dice cuál fue, tomándolo de la línea
+            # técnica del propio error, que ya lo trae. Sin esto el
+            # aviso diría algo genérico y el error final diría otra
+            # cosa, que es justo lo que confunde al leer.
+            causa = (str(fallo).split("\n")[-1]
+                     .replace("[técnico] ", "").split(". ")[0].rstrip("."))
+            avisar(f"Intento {intento} de {intentos} falló. {causa}. "
+                   f"Reintentando en {espera_segundos}s...")
             time.sleep(espera_segundos)
 
 
@@ -112,8 +125,8 @@ def consultar_modelo(
 
     Raises:
         ValueError: si la pregunta no sirve, si falta la configuración
-            del .env, o si la credencial no es válida. Ninguno de los
-            tres se arregla reintentando.
+            del .env, si la credencial no es válida o si el modelo no
+            existe. Ninguno se arregla reintentando.
         RuntimeError: si se agotaron los reintentos, o si la respuesta
             del servicio no tiene la forma esperada.
     """
@@ -125,21 +138,24 @@ def consultar_modelo(
             lambda: enviar_peticion(url, headers, body))
 
     # con_reintento ya agotó sus intentos y volvió a lanzar el
-    # TimeoutError original. Quien usa el cliente no tiene por qué
-    # conocer ese detalle interno, así que se traduce a un error
-    # propio con un mensaje pensado para él.
+    # TimeoutError original. Aquí cambia de tipo a RuntimeError para
+    # que quien llame distinga lo que ya no se arregla solo de lo que
+    # todavía se podía reintentar.
     except TimeoutError as fallo:
-        # Del error original se toma solo su línea técnica, no el
-        # mensaje entero. Si se pegara completo quedaría un [usuario]
+        # Las dos partes del error original se separan y se vuelven a
+        # armar. La de usuario se conserva tal cual, porque ya dice
+        # qué pasó, sea la conexión o el límite de uso, y porque el
+        # reintento es un detalle interno que a él no le sirve. La
+        # cuenta de intentos va en la parte técnica, que es de quien
+        # programa. Pegar el mensaje entero dejaría un [usuario]
         # metido adentro de un [técnico] y el bloque pasaría a tres
         # líneas, rompiendo el formato de dos partes.
-        causa = getattr(fallo, "causa", "una falla momentánea")
-        detalle = str(fallo).split("\n")[-1].replace("[técnico] ", "")
+        partes = str(fallo).split("\n")
+        usuario = partes[0].replace("[usuario] ", "")
+        detalle = partes[-1].replace("[técnico] ", "")
         raise RuntimeError(
-            "[usuario] El servicio no respondió después de varios "
-            "intentos. Intenta más tarde.\n"
-            f"[técnico] Se agotaron los {INTENTOS} intentos por "
-            f"{causa}. {detalle}")
+            f"[usuario] {usuario}\n"
+            f"[técnico] Se agotaron los {INTENTOS} intentos. {detalle}")
 
     # El ValueError de la credencial no se toca. Sigue propagándose
     # tal cual, porque ya trae un mensaje claro desde enviar_peticion.
@@ -171,11 +187,11 @@ if __name__ == "__main__":
         notabn("\nProceso terminado.")
 
     except ValueError as fallo:
-        avisobn(f"\nError de configuración.\n{fallo}")
+        avisofn(f"\nError de configuración.\n{fallo}")
 
     except RuntimeError as fallo:
-        avisobn(f"\n{fallo}")
+        avisofn(f"\n{fallo}")
 
     except Exception as fallo:
-        errorbn(f"\nError inesperado. {type(fallo).__name__}")
-        avisobn(f"\n{fallo}")
+        avisofn(f"\nError inesperado. {type(fallo).__name__}")
+        avisofn(f"\n{fallo}")

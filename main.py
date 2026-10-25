@@ -82,8 +82,8 @@ try:
     notabn("\nProceso terminado.")
 
 except (ValueError, RuntimeError, TimeoutError) as fallo:
-    avisobn(f"\n{fallo}")
+    avisofn(f"\n{fallo}")
 
 except Exception as fallo:
-    errorfn(f"\nError inesperado. {type(fallo).__name__}")
-    avisobn(f"\n{fallo}")
+    avisofn(f"\nError inesperado. {type(fallo).__name__}")
+    avisofn(f"\n{fallo}")

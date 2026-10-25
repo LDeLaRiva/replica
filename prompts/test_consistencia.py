@@ -37,21 +37,21 @@ from src.contraste import *                         # noqa: E402, F403
 # carpeta se ejecute.
 ARCHIVO_REGISTRO = RAIZ / "prompts" / "registro_resultados.json"
 
-REPETICIONES = 2
-PAUSA = 0
+REPETICIONES = 5
+PAUSA = 5
 
 # Muestra el contenido de cada respuesta, no solo el conteo.
 MOSTRAR_RESPUESTAS = True
 
 # Imprime la plantilla del documento de ajustes. Se enciende solo
 # cuando hubo un cambio que documentar.
-PLANTILLA_AJUSTE = True
+PLANTILLA_AJUSTE = False
 
 registro = {}
 
 for prompt in BANCO_DE_PROMPTS:
     exitos = 0
-    titulobn(f"\n{prompt['nombre']}")
+    titulofn(f"\n{prompt['nombre']}")
 
     for intento in range(REPETICIONES):
         try:
@@ -79,7 +79,7 @@ for prompt in BANCO_DE_PROMPTS:
                 # propias claves, así que se calcula en cada vuelta.
                 ancho = max(len(clave) for clave in datos)
                 for clave, valor in datos.items():
-                    salbn(f"    {clave:<{ancho}}  {valor}")
+                    salfn(f"    {clave:<{ancho}}  {valor}")
 
         except (ValueError, RuntimeError, TimeoutError) as fallo:
             avisofn(f"  intento {intento + 1} falló. {fallo}")
@@ -87,7 +87,7 @@ for prompt in BANCO_DE_PROMPTS:
         # Una falla rara no debe botar la medición completa y dejar
         # sin registro las repeticiones ya hechas.
         except Exception as fallo:
-            errorfn(f"  intento {intento + 1} error inesperado. "
+            errorbn(f"  intento {intento + 1} error inesperado. "
                     f"{type(fallo).__name__}")
 
         time.sleep(PAUSA)
@@ -95,7 +95,7 @@ for prompt in BANCO_DE_PROMPTS:
     if exitos == REPETICIONES:
         exitobn(f"  {exitos}/{REPETICIONES} respuestas válidas")
     else:
-        avisofn(f"  {exitos}/{REPETICIONES} respuestas válidas")
+        avisobn(f"  {exitos}/{REPETICIONES} respuestas válidas")
 
     registro[prompt["nombre"]] = {
         "exitos": exitos,
@@ -118,21 +118,21 @@ salida = {
 # en ese caso borraría una medición buena y no aportaría ninguna,
 # así que el archivo se deja como estaba.
 if sum(r["exitos"] for r in registro.values()) == 0:
-    errorfn("\nNinguna respuesta válida en toda la medición.")
-    avisofn("\nEl registro no se modificó. Revisa la configuración "
+    errorbn("\nNinguna respuesta válida en toda la medición.")
+    avisobn("\nEl registro no se modificó. Revisa la configuración "
             "y vuelve a correr.")
     raise SystemExit(1)
 
 with open(ARCHIVO_REGISTRO, "w", encoding="utf-8") as archivo:
     json.dump(salida, archivo, indent=2, ensure_ascii=False)
 
-titulobn("\nRegistro guardado en prompts/registro_resultados.json")
+titulofn("\nRegistro guardado en prompts/registro_resultados.json")
 
 # Filas en formato markdown, para copiarlas al documento de ajustes
 # sin transcribir los números a mano.
-salbn("\nPara pegar en docs/ajustes-prompts.md")
+titulofn("\nPara pegar en docs/ajustes-prompts.md")
 for nombre, resultado in registro.items():
-    salbn(f"| {hoy} | {nombre} | "
+    titulobn(f"| {hoy} | {nombre} | "
           f"{resultado['exitos']}/{resultado['intentos']} |")
 
 if PLANTILLA_AJUSTE:
