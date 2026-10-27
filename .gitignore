@@ -169,9 +169,10 @@ src/prueba.py
 src/salida.py
 src/monolitico.py
 src/peticiones.py
-
+src/ensayo_rate_limit.py
 evidencias/
 prueba_offline.py
+
 
 # Spyder project settings
 .spyderproject

@@ -1,6 +1,6 @@
 """Cliente del proyecto. Una sola puerta de entrada al modelo.
 
-Hasta aquí, para hacer una consulta había que llamar a las funciones
+Para hacer una consulta había que llamar a las funciones
 de src.consumir_gemini en el orden correcto y saber qué podía fallar
 en cada una. Este archivo envuelve todo eso en consultar_modelo, que
 recibe una pregunta y devuelve la respuesta ya lista.
@@ -14,6 +14,7 @@ se resuelven esperando se reintentan aquí. Los que no, pasan de largo
 sin que este archivo los toque.
 """
 
+import random
 import sys
 import time
 from pathlib import Path
@@ -26,20 +27,33 @@ if str(RAIZ) not in sys.path:
     sys.path.insert(0, str(RAIZ))
 
 from src.consumir_gemini import (                       # noqa: E402
+    PRECIO_ENTRADA,
+    PRECIO_SALIDA,
     armar_peticion,
+    calcular_costo_peticion,
     enviar_peticion,
     extraer_texto,
     parsear_respuesta_json,
 )
 
 INTENTOS = 3
-ESPERA_SEGUNDOS = 2
+# La espera parte en ESPERA_BASE y se duplica en cada intento, hasta
+# ESPERA_MAXIMA. El techo existe para que la espera no se dispare si
+# algún día se suben los intentos, porque con base 2 y seis intentos
+# el quinto reintento ya esperaría 32 segundos.
+ESPERA_BASE = 2
+ESPERA_MAXIMA = 30
+
+# Lo que lleva gastado esta corrida. Se reinicia en cada ejecución,
+# porque es el total de la sesión y no un registro permanente.
+costo_total_sesion = 0.0
 
 
 def con_reintento(
     funcion: Callable[[], Any],
     intentos: int = INTENTOS,
-    espera_segundos: int = ESPERA_SEGUNDOS,
+    espera_base: float = ESPERA_BASE,
+    espera_maxima: float = ESPERA_MAXIMA,
     avisar: Callable[[str], None] = print,
 ) -> Any:
     """Repite una operación mientras falle por algo momentáneo.
@@ -53,8 +67,9 @@ def con_reintento(
     Args:
         funcion: lo que hay que intentar, sin argumentos.
         intentos: cuántas veces se intenta en total.
-        espera_segundos: cuánto se espera entre un intento y el
-            siguiente.
+        espera_base: desde cuántos segundos parte la espera. Se
+            duplica en cada intento.
+        espera_maxima: hasta cuánto puede crecer esa espera.
         avisar: cómo se informa cada reintento. Por defecto print,
             pero quien llame puede entregar otra cosa, porque este
             módulo no decide cómo se muestran las cosas.
@@ -93,9 +108,47 @@ def con_reintento(
             # cosa, que es justo lo que confunde al leer.
             causa = (str(fallo).split("\n")[-1]
                      .replace("[técnico] ", "").split(". ")[0].rstrip("."))
+            # La espera se duplica en cada intento en vez de ser
+            # siempre la misma. Si el proveedor frenó por exceso de
+            # uso, volver a los 2 segundos cae dentro de la misma
+            # ventana y topa el límite otra vez. El azar del final
+            # evita que varias corridas que fallaron juntas vuelvan
+            # todas en el mismo segundo.
+            espera = min(espera_base * (2 ** (intento - 1)),
+                         espera_maxima)
+            espera_con_jitter = espera + random.uniform(0, espera * 0.1)
             avisar(f"Intento {intento} de {intentos} falló. {causa}. "
-                   f"Reintentando en {espera_segundos}s...")
-            time.sleep(espera_segundos)
+                   f"Reintentando en {espera_con_jitter:.1f}s...")
+            time.sleep(espera_con_jitter)
+
+
+def registrar_costo(respuesta: dict) -> float:
+    """Calcula lo que costó una respuesta y lo suma al total.
+
+    El cálculo lo hace calcular_costo_peticion, que vive en
+    src.consumir_gemini porque los precios dependen del proveedor y
+    distinguen los tokens que se envían de los que se generan. Aquí
+    solo se acumula, que es lo que le importa al cliente.
+
+    No imprime nada, igual que el resto del módulo. Devuelve el costo
+    para que quien llame decida si lo muestra y cómo.
+
+    Args:
+        respuesta: la respuesta del servicio, ya convertida en
+            diccionario.
+
+    Returns:
+        El costo en dólares de esa respuesta.
+
+    Raises:
+        RuntimeError: el que lanza calcular_costo_peticion si a la
+            respuesta le falta el bloque usageMetadata.
+    """
+    global costo_total_sesion
+    costo = calcular_costo_peticion(
+        respuesta, PRECIO_ENTRADA, PRECIO_SALIDA)
+    costo_total_sesion += costo
+    return costo
 
 
 def consultar_modelo(
@@ -160,6 +213,11 @@ def consultar_modelo(
     # El ValueError de la credencial no se toca. Sigue propagándose
     # tal cual, porque ya trae un mensaje claro desde enviar_peticion.
 
+    # El costo se registra recién aquí, después de que la respuesta
+    # llegó bien. Si se registrara antes del try se contarían
+    # operaciones que en realidad fallaron y nunca gastaron tokens.
+    registrar_costo(respuesta)
+
     texto = extraer_texto(respuesta)
 
     if response_schema is None:
@@ -184,6 +242,8 @@ if __name__ == "__main__":
             "¿Cuál es la capital de Chile?",
             "Responde en una sola oración y en español.")
         salbn(f"\n{respuesta}")
+        notabn(f"\nCosto acumulado de la sesión  "
+               f"{costo_total_sesion:.8f} USD")
         notabn("\nProceso terminado.")
 
     except ValueError as fallo:

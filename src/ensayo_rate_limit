@@ -1,0 +1,132 @@
+"""Ensayo del Bloque 13. Provoca un límite de uso real, a propósito.
+
+La lección pide confirmar en vivo que el backoff, el reintento y el
+registro de costo se comportan como fueron diseñados, en vez de darlo
+por bueno leyendo el código.
+
+Este archivo manda preguntas cortas, una tras otra y sin pausa, hasta
+que el servicio responde 429. Apenas aparece el primer 429 se detiene.
+No sigue pidiendo de más, porque el objetivo es ver el límite una vez,
+no agotar la cuota del día.
+
+Esto no es parte de la aplicación. Es un ensayo de una sola vez, y al
+terminar imprime los datos que la lección pide anotar en el registro.
+"""
+
+import io
+import sys
+from contextlib import redirect_stdout
+from pathlib import Path
+
+# La raíz se agrega a la ruta de búsqueda para que el archivo corra
+# tanto con el botón como con python -m desde la raíz.
+RAIZ = Path(__file__).resolve().parent
+if str(RAIZ) not in sys.path:
+    sys.path.insert(0, str(RAIZ))
+
+import src.cliente as cliente                           # noqa: E402
+from src.cliente import consultar_modelo                # noqa: E402
+from src.contraste import *                             # noqa: E402, F403
+
+# Tope de seguridad. El bucle se detiene solo cuando aparece el primer
+# 429, pero si el límite no apareciera, este número evita que el
+# ensayo siga pidiendo sin control. Si llega al tope sin ver ningún
+# 429, la cuota del momento aguantaba más y se puede subir con calma.
+TOPE = 20
+
+# La pregunta se deja lo más corta posible y la instrucción obliga a
+# una respuesta de una palabra. Lo que cuesta son los tokens que el
+# modelo genera, así que mientras más breve la respuesta, más barato
+# sale el ensayo.
+PREGUNTA = "Di la palabra listo."
+INSTRUCCION = "Responde con una sola palabra, sin puntuación."
+
+
+def una_peticion(numero):
+    """Hace una consulta y devuelve qué pasó, sin dejar que corte el bucle.
+
+    Los avisos de reintento se capturan en vez de imprimirse al vuelo,
+    para que la salida del ensayo quede ordenada y para poder revisar
+    si entre ellos apareció un 429.
+
+    Args:
+        numero: qué número de petición es, solo para el informe.
+
+    Returns:
+        Una tupla con los avisos de reintento que hubo, y el error si
+        la consulta falló del todo, o None si salió bien.
+    """
+    avisos = io.StringIO()
+    try:
+        with redirect_stdout(avisos):
+            consultar_modelo(PREGUNTA, INSTRUCCION)
+        fallo = None
+    except (ValueError, RuntimeError) as error:
+        fallo = error
+    return avisos.getvalue().strip(), fallo
+
+
+if __name__ == "__main__":
+    titulobn("\nEnsayo de límite de uso")
+    notabn(f"\nSe envían preguntas cortas sin pausa, hasta un tope de "
+           f"{TOPE}.\nEl ensayo se detiene apenas aparezca el primer "
+           f"429.")
+
+    enviadas = 0
+    primer_429 = None
+    esperas = []
+
+    for numero in range(1, TOPE + 1):
+        enviadas = numero
+        avisos, fallo = una_peticion(numero)
+
+        # Una credencial inválida no es lo que este ensayo busca, y
+        # seguiría fallando en las veinte peticiones. Mejor cortar y
+        # avisar que seguir gastando.
+        if isinstance(fallo, ValueError):
+            errorbn(f"\nLa petición {numero} falló por configuración, "
+                    f"no por el límite.")
+            avisofn(f"\n{fallo}")
+            avisobn("\nEsto no es un rate limit. Revisa el .env y "
+                    "vuelve a correr el ensayo.")
+            raise SystemExit(1)
+
+        if avisos:
+            for linea in avisos.split("\n"):
+                avisofn(linea)
+                # El número de segundos va al final del aviso, después
+                # de la palabra "en" y antes de la "s" de segundos.
+                if " en " in linea:
+                    esperas.append(linea.split(" en ")[-1].rstrip("s. ."))
+
+        if fallo is not None:
+            errorbn(f"\nLa petición {numero} agotó sus tres intentos.")
+            avisofn(f"\n{fallo}")
+
+        if "429" in avisos or fallo is not None:
+            primer_429 = numero
+            exitobn(f"\nApareció el límite en la petición {numero}. "
+                    f"El ensayo se detiene aquí.")
+            break
+
+        salbn(f"  Petición {numero} respondió bien.")
+
+    titulofn("\nDatos para el registro del ensayo")
+    salfn(f"  Peticiones enviadas          {enviadas}")
+    if primer_429:
+        salfn(f"  Primer 429 en la petición    {primer_429}")
+    else:
+        salfn(f"  Primer 429 en la petición    ninguno dentro del tope")
+    vistas = ", ".join(f"{espera}s" for espera in esperas)
+    salfn(f"  Esperas observadas           {vistas or 'ninguna'}")
+    salfn(f"  Costo total del ensayo       "
+          f"{cliente.costo_total_sesion:.8f} USD")
+
+    if primer_429:
+        notabn("\nResultado. El límite apareció, el backoff mostró "
+               "esperas crecientes y el cliente lo manejó sin reventar.")
+    else:
+        notabn("\nResultado. No se alcanzó el límite dentro del tope. "
+               "La cuota del momento aguantaba más.")
+
+    titulobn("\nFin del ensayo")
