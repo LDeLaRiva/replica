@@ -163,7 +163,7 @@ venv.bak/
 #modulos personales o de pruebas
 src/peticiones.py
 
-src/module_test.py
+src/moduletst.py
 src/variables_entorno.py
 src/prueba.py
 src/salida.py
@@ -173,7 +173,7 @@ src/ensayo_rate_limit.py
 evidencias/
 prueba_offline.py
 
-
+.vscode/
 # Spyder project settings
 .spyderproject
 .spyproject
