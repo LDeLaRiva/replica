@@ -31,12 +31,16 @@ salida.
   legalidad.
 - Identifica qué materias aborda un contrato, usando un vocabulario
   cerrado derivado del artículo 10 del Código del Trabajo.
-Las cuatro devuelven JSON validado, no texto libre, y con los
-valores tipados. Un número vuelve como número y un booleano como
-booleano, de modo que el programa pueda usarlos sin volver a
-interpretar texto. Cruzar los datos de un contrato con la norma para
-responder sobre un caso concreto no está implementado todavía y es
-el trabajo siguiente del proyecto.
+
+
+Las cuatro devuelven JSON validado, no texto libre, y con los valores
+tipados. Un número vuelve como número y un booleano como booleano, de
+modo que el programa pueda usarlos sin volver a interpretar texto.
+
+Cruzar los datos de un contrato con la norma para responder sobre un
+caso concreto no está implementado todavía y es el trabajo siguiente
+del proyecto.
+
 
 Los límites del proyecto, incluidos los que están medidos, se
 detallan en [Limitaciones conocidas](#limitaciones-conocidas).
