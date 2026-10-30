@@ -1,12 +1,15 @@
-"""Pruebas unitarias del pipeline de texto.
+"""Pruebas unitarias del pipeline de texto y de sus métricas.
 
-Estas pruebas no necesitan reemplazo. Las funciones de
-src.pipeline_texto reciben un texto y devuelven un texto, una lista o
-un conteo, sin tocar la red ni depender de nada externo,
-se llaman directo con un valor escrito a mano.
+Estas pruebas no necesitan ningún reemplazo. Las funciones de
+src.pipeline_texto reciben texto o listas y devuelven texto, listas o
+números, sin tocar la red ni depender de nada externo, así que se
+llaman directo con un valor escrito a mano.
 
 Es la diferencia con test_cliente.py, donde sí había que reemplazar
 requests.post porque enviar_peticion sale a internet.
+
+Los números esperados de las métricas no están inventados. Son los que
+las lecciones del Bloque 16 dejan calculados en su texto.
 
 Se corre desde la raíz del repositorio con
 `pytest src/test_pipeline_texto.py -v`
@@ -26,8 +29,12 @@ if str(RAIZ) not in sys.path:
     sys.path.insert(0, str(RAIZ))
 
 from src.pipeline_texto import (                          # noqa: E402
+    calcular_metricas,
+    calcular_precision_cobertura_f1,
+    contar_coincidencias,
     limpiar_texto,
     procesar_texto,
+    resumir_metricas,
     vectorizar,
 )
 
@@ -100,3 +107,106 @@ def test_vectorizar_cuenta_las_repeticiones():
 
     assert vectorizar(tokens) == Counter(
         {"el": 2, "gato": 1, "y": 1, "perro": 1})
+
+
+# ===== contar_coincidencias ===========================================
+
+def test_contar_coincidencias_no_pierde_repeticiones():
+    """Toma el mínimo de cada palabra, no solo si aparece o no.
+
+    Es el ejemplo que la lección calcula a mano. La referencia trae dos
+    veces "el" y la respuesta tres, así que la intersección se queda
+    con dos. Sumando "gato", "duerme" y "en" dan cinco coincidencias.
+    "sofá" no está en la respuesta y no suma.
+
+    Un conjunto habría contado cuatro, una sola vez cada palabra.
+    """
+    referencia = procesar_texto("El gato duerme en el sofá.")
+    respuesta = procesar_texto("El gato duerme en el sillón todo el día.")
+
+    assert contar_coincidencias(referencia, respuesta) == 5
+
+
+# ===== calcular_precision_cobertura_f1 ================================
+
+def test_precision_cobertura_f1_con_el_ejemplo_de_la_leccion():
+    """Los tres números del ejemplo calculado a mano en la lección.
+
+    Con cinco coincidencias sobre nueve palabras de la respuesta, la
+    precisión queda en 5/9. Sobre las seis de la referencia, la
+    cobertura queda en 5/6. Es el patrón de una respuesta más larga
+    que la referencia, que dice todo lo necesario pero con palabras
+    de más.
+    """
+    referencia = procesar_texto("El gato duerme en el sofá.")
+    respuesta = procesar_texto("El gato duerme en el sillón todo el día.")
+
+    resultado = calcular_precision_cobertura_f1(referencia, respuesta)
+
+    assert resultado["precision"] == pytest.approx(5 / 9)
+    assert resultado["cobertura"] == pytest.approx(5 / 6)
+    assert resultado["f1"] == pytest.approx(2 / 3)
+
+
+def test_precision_cobertura_f1_con_listas_vacias():
+    """Una lista vacía devuelve ceros, no una división por cero.
+
+    Pasa de verdad cuando el modelo contesta vacío o cortado, porque
+    procesar_texto devuelve una lista vacía y el largo es cero. Sin
+    esta guarda la función reventaría con ZeroDivisionError.
+    """
+    llena = procesar_texto("El cielo es azul.")
+    cero = {"precision": 0.0, "cobertura": 0.0, "f1": 0.0}
+
+    assert calcular_precision_cobertura_f1([], llena) == cero
+    assert calcular_precision_cobertura_f1(llena, []) == cero
+    assert calcular_precision_cobertura_f1([], []) == cero
+
+
+# ===== calcular_metricas ==============================================
+
+def test_calcular_metricas_procesa_los_dos_lados():
+    """Recibe dos textos crudos y devuelve las métricas ya calculadas.
+
+    Se comprueba con el caso de la negación de la lección, que es el
+    más engañoso de los tres. La respuesta dice lo contrario de la
+    referencia y aun así saca 0.909, porque la única palabra que falta
+    es el "no".
+
+    Que los números salgan iguales confirma que la función procesó los
+    dos lados. Si procesara solo uno, no cuadrarían.
+    """
+    resultado = calcular_metricas(
+        "Python no es un lenguaje compilado.",
+        "Python es un lenguaje compilado.")
+
+    assert resultado["precision"] == pytest.approx(1.0)
+    assert resultado["cobertura"] == pytest.approx(5 / 6)
+    assert resultado["f1"] == pytest.approx(10 / 11)
+
+
+# ===== resumir_metricas ===============================================
+
+def test_resumir_metricas_promedia_y_soporta_la_lista_vacia():
+    """Promedia los tres números, y con cero casos devuelve ceros.
+
+    El promedio esconde el detalle. Dos respuestas buenas y una mala
+    dan lo mismo que tres regulares, y por eso la lección pide además
+    ordenar por F1 y leer las peores.
+    """
+    resultados = [
+        {"precision": 1.0, "cobertura": 0.5, "f1": 0.0},
+        {"precision": 0.0, "cobertura": 0.5, "f1": 1.0},
+    ]
+
+    resumen = resumir_metricas(resultados)
+
+    assert resumen["precision_promedio"] == pytest.approx(0.5)
+    assert resumen["cobertura_promedio"] == pytest.approx(0.5)
+    assert resumen["f1_promedio"] == pytest.approx(0.5)
+
+    vacio = resumir_metricas([])
+
+    assert vacio["precision_promedio"] == 0
+    assert vacio["cobertura_promedio"] == 0
+    assert vacio["f1_promedio"] == 0

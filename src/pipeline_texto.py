@@ -1,12 +1,17 @@
-"""Pipeline de limpieza y tokenización de texto.
+"""Pipeline de limpieza y tokenización de texto, y métricas.
 
-Limpiar_textodeja el texto parejo, tokenizar lo parte en palabras, y procesar_texto
-hace las dos cosas de una sola llamada.
+limpiar_texto deja el texto parejo, tokenizar lo parte en palabras, y
+procesar_texto hace las dos cosas de una sola llamada.
+
+Sobre esas tres se calculan las métricas del Bloque 16. Precisión,
+cobertura y F1, que miden cuánto se parece una respuesta generada a
+una referencia escrita a mano.
 
 Se corre desde la raíz del repositorio con
 `python -m src.pipeline_texto`
 """
 
+import json
 import re
 import sys
 from collections import Counter
@@ -20,10 +25,12 @@ RAIZ = Path(__file__).resolve().parent.parent
 if str(RAIZ) not in sys.path:
     sys.path.insert(0, str(RAIZ))
 
-# Las tres funciones de abajo no usan el cliente. Solo lo necesita la
+# Ninguna de las funciones de abajo usa el cliente. Solo lo necesita la
 # demostración del final, que consulta al modelo de verdad.
 from src.cliente import consultar_modelo                  # noqa: E402
 
+
+# ===== El pipeline ====================================================
 
 def limpiar_texto(texto: str) -> str:
     """Deja el texto en minúsculas, sin puntuación y sin espacios de sobra.
@@ -73,7 +80,6 @@ def tokenizar(texto_limpio: str) -> list[str]:
     return texto_limpio.split()
 
 
-
 def procesar_texto(texto: str) -> list[str]:
     """Limpia y tokeniza en un solo paso.
 
@@ -100,9 +106,8 @@ def vectorizar(tokens: list[str]) -> Counter:
     "aparece una vez" de "aparece dos veces". Para un conjunto, "el
     gato el gato" y "el gato" son lo mismo. Para este conteo no.
 
-    La comparación de más abajo todavía usa conjuntos, así que esta
-    función queda como introducción al concepto. El Bloque 16 construye
-    sobre ella la métrica que sí cuenta repeticiones.
+    Es la idea que contar_coincidencias lleva un paso más allá, usando
+    la intersección de dos conteos en vez de uno solo.
 
     Args:
         tokens: la lista de palabras que devolvió procesar_texto.
@@ -114,9 +119,88 @@ def vectorizar(tokens: list[str]) -> Counter:
     return Counter(tokens)
 
 
+# ===== Las métricas ===================================================
+
+def contar_coincidencias(
+    tokens_referencia: list[str],
+    tokens_respuesta: list[str],
+) -> int:
+    """Cuenta las coincidencias entre referencia y respuesta."""
+    conteo_referencia = Counter(tokens_referencia)
+    conteo_respuesta = Counter(tokens_respuesta)
+    interseccion = conteo_referencia & conteo_respuesta
+    return sum(interseccion.values())
+
+
+def calcular_precision_cobertura_f1(
+    tokens_referencia: list[str],
+    tokens_respuesta: list[str],
+) -> dict[str, float]:
+    """Calcula precisión, cobertura y F1 de dos listas de tokens."""
+    coincidencias = contar_coincidencias(
+        tokens_referencia, tokens_respuesta
+    )
+
+    if not tokens_respuesta or not tokens_referencia:
+        return {"precision": 0.0, "cobertura": 0.0, "f1": 0.0}
+
+    precision = coincidencias / len(tokens_respuesta)
+    cobertura = coincidencias / len(tokens_referencia)
+
+    if precision + cobertura == 0:
+        f1 = 0.0
+    else:
+        f1 = 2 * precision * cobertura / (precision + cobertura)
+
+    resultado = {
+        "precision": precision,
+        "cobertura": cobertura,
+        "f1": f1,
+    }
+
+    return resultado
+
+
+def calcular_metricas(texto_referencia, texto_respuesta):
+    """Procesa los dos textos y devuelve sus métricas, de una llamada."""
+    tokens_referencia = procesar_texto(texto_referencia)
+    tokens_respuesta = procesar_texto(texto_respuesta)
+    return calcular_precision_cobertura_f1(
+        tokens_referencia, tokens_respuesta
+    )
+
+
+def resumir_metricas(resultados):
+    """Promedia precisión, cobertura y F1 de una lista de resultados."""
+    if not resultados:
+        return {
+            "precision_promedio": 0,
+            "cobertura_promedio": 0,
+            "f1_promedio": 0,
+        }
+    n = len(resultados)
+    return {
+        "precision_promedio": sum(
+            r["precision"] for r in resultados
+        ) / n,
+        "cobertura_promedio": sum(
+            r["cobertura"] for r in resultados
+        ) / n,
+        "f1_promedio": sum(r["f1"] for r in resultados) / n,
+    }
+
+
 if __name__ == "__main__":
     # El módulo no usa colores, solo esta demostración.
     from src.contraste import *                       # noqa: E402, F403
+
+    # El archivo de resultados queda al lado de este script, igual que
+    # registro_resultados.json queda al lado de test_consistencia.py.
+    # La ruta se arma desde __file__ y no desde la carpeta actual, para
+    # que caiga siempre en el mismo lugar sin importar desde dónde se
+    # lance el programa.
+    RUTA_RESULTADOS = Path(__file__).resolve().parent / \
+        "resultados_metricas.json"
 
     # ===== Primera parte, el pipeline a solas ========================
     #
@@ -144,7 +228,11 @@ if __name__ == "__main__":
 
     # ===== Segunda parte, sobre respuestas reales ====================
     #
-    # Consultas que sí gastan cuota. Son tres.
+    # Consultas que sí gastan cuota. Son tres, y cada una se usa para
+    # las dos mediciones. La del Bloque 15, que compara el texto crudo
+    # contra el procesado, y la del Bloque 16, que calcula precisión,
+    # cobertura y F1. Preguntar dos veces lo mismo costaría el doble
+    # sin agregar nada.
 
     # La referencia es lo que esperamos que conteste, escrita a mano, y
     # es contra eso que se compara la respuesta real del modelo.
@@ -170,16 +258,19 @@ if __name__ == "__main__":
          "quince días hábiles de feriado anual."),
     ]
 
+    # La instrucción pide brevedad a propósito. La precisión divide las
+    # coincidencias por el largo de la respuesta, así que una respuesta
+    # larga la hunde aunque diga lo correcto.
     INSTRUCCION = ("Responde en una sola oración breve, en español y "
                    "sin viñetas.")
 
     titulobn("\nEl pipeline sobre respuestas reales")
     notabn(f"\nSe hacen {len(CASOS)} consultas al modelo y se compara "
-           f"cada respuesta\ncontra una referencia escrita a mano, "
-           f"antes y después del pipeline.")
+           f"cada respuesta\ncontra una referencia escrita a mano.")
 
     consultados = 0
     cambiados = 0
+    resultados = []
 
     for numero, (pregunta, referencia) in enumerate(CASOS, 1):
         titulofn(f"\nCaso {numero}")
@@ -199,7 +290,8 @@ if __name__ == "__main__":
         exitobn(f"\n  Respuesta del modelo\n    {respuesta}")
 
         # El antes.
-        # Se parte por espacios, sin limpiar nada, que es el error a evitar.
+        # Se parte por espacios, sin limpiar nada, que es el error
+        # a evitar.
         crudo_ref = referencia.split()
         crudo_resp = respuesta.split()
         comunes_crudo = set(crudo_ref) & set(crudo_resp)
@@ -210,7 +302,7 @@ if __name__ == "__main__":
 
         # El después.
         # El mismo cálculo, con los dos lados procesados.
-        # Procesar un solo lado dejaría la comparación igual
+        # Procesar un solo lado dejaría la comparación igual de
         # torcida. Se escribe completo y no en una función, para que
         # la única diferencia entre los dos bloques sea visible.
         tokens_ref = procesar_texto(referencia)
@@ -225,15 +317,36 @@ if __name__ == "__main__":
         if diferencia != 0:
             cambiados += 1
 
-        lilafn("\n  Coincidencia")
+        lilafn("\n  Coincidencia por conjuntos, Bloque 15")
         lilabn(f"    Texto crudo        {pct_crudo:.1%}")
         lilabn(f"    Texto procesado    {pct_proc:.1%}")
         lilabn(f"    Diferencia         {diferencia:+.1%}")
 
+        # Las métricas del Bloque 16, sobre la misma respuesta.
+        metricas = calcular_metricas(referencia, respuesta)
+
+        lilafn("\n  Métricas por conteo, Bloque 16")
+        lilabn(f"    Precisión          {metricas['precision']:.3f}")
+        lilabn(f"    Cobertura          {metricas['cobertura']:.3f}")
+        lilabn(f"    F1                 {metricas['f1']:.3f}")
+
+        # La referencia se guarda junto con la respuesta, además de lo
+        # que pide la lección. Sin ella, al volver a leer el archivo no
+        # hay con qué juzgar si la respuesta estuvo bien, que es justo
+        # lo que el Bloque 17 va a pedir hacer.
+        resultados.append({
+            "consulta": pregunta,
+            "referencia": referencia,
+            "respuesta": respuesta,
+            **metricas,
+        })
+
+    # ===== Tercera parte, el resumen =================================
+
     titulofn("\nQué cambió el pipeline")
     salfn(f"  En {cambiados} de {consultados} casos consultados, la "
-          f"medición cambió al\n  normalizar el texto antes de "
-          f"comparar.")
+          f"coincidencia por\n  conjuntos cambió al normalizar el "
+          f"texto antes de comparar.")
 
     if cambiados == 0 and consultados > 0:
         # Puede pasar si las dos oraciones terminan en la misma palabra
@@ -243,13 +356,44 @@ if __name__ == "__main__":
                 "volver a\n  correrla, porque el modelo no contesta "
                 "igual dos veces.")
 
+    resumen = resumir_metricas(resultados)
+
+    titulofn("\nPromedio de las métricas")
+    salfn(f"  Precisión   {resumen['precision_promedio']:.3f}\n"
+          f"  Cobertura   {resumen['cobertura_promedio']:.3f}\n"
+          f"  F1          {resumen['f1_promedio']:.3f}")
+    notabn("\n  Un promedio no dice si hay tres respuestas regulares o "
+           "dos\n  buenas y una mala. Para eso está la lista de abajo.")
+
+    # Ordenadas de peor a mejor. Revisar primero las peores rinde más
+    # que revisarlas en el orden en que se generaron. Se muestran las
+    # tres peores, que con tres casos son todas.
+    titulofn("\nLos peores casos, por F1")
+    peores_casos = sorted(resultados, key=lambda r: r["f1"])
+    for caso in peores_casos[:3]:
+        # La pregunta se corta en la última palabra que entra, para
+        # que la línea no se parta en dos. Completa ya aparece más
+        # arriba, en el detalle de cada caso.
+        consulta = caso["consulta"]
+        if len(consulta) > 50:
+            consulta = consulta[:50].rsplit(" ", 1)[0] + "..."
+        salfn(f"  {caso['f1']:.3f}   {consulta}")
+
+    # ===== El archivo ================================================
+
+    if resultados:
+        with open(RUTA_RESULTADOS, "w", encoding="utf-8") as archivo:
+            json.dump(resultados, archivo, indent=2, ensure_ascii=False)
+        exitobn(f"\nResultados guardados en {RUTA_RESULTADOS.name}")
+    else:
+        avisobn("\nNo hubo resultados que guardar.")
+
     titulofn("\nQué no mide este número")
     salfn("  No mide si la respuesta es correcta. Mide cuántas "
-          "palabras de\n  la referencia aparecen en ella. Dos oraciones "
-          "pueden coincidir\n  en todo y decir lo contrario, porque el "
-          "orden no se toma en\n  cuenta.")
-    salfn("  Tampoco distingue una palabra repetida de una sola, "
-          "porque la\n  comparación usa conjuntos. Esa parte la "
-          "resuelve vectorizar,\n  y es lo que retoma el Bloque 16.")
+          "palabras de\n  la referencia aparecen en ella. Una respuesta "
+          "a la que solo le\n  falta un \"no\" puede sacar 0.909 y "
+          "decir lo contrario.")
+    salfn("  Tampoco entiende sinónimos. Decir lo mismo con otras "
+          "palabras\n  baja la nota, aunque la respuesta sea correcta.")
 
     titulobn("\nFin del registro")

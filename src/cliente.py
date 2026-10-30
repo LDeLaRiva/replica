@@ -44,9 +44,37 @@ INTENTOS = 3
 ESPERA_BASE = 2
 ESPERA_MAXIMA = 30
 
+# La marca con que src.consumir_gemini separa el detalle para quien
+# programa del mensaje para el usuario.
+MARCA_TECNICA = "[técnico] "
+
 # Lo que lleva gastado esta corrida. Se reinicia en cada ejecución,
 # porque es el total de la sesión y no un registro permanente.
 costo_total_sesion = 0.0
+
+
+def _linea_tecnica(fallo: Exception) -> str:
+    """Saca el detalle técnico de un error de dos partes.
+
+    La línea se busca por su marca, recorriendo el mensaje de abajo
+    hacia arriba, en vez de tomar la última a ciegas. Un mensaje que
+    termine en salto de línea deja esa última vacía, y entonces el
+    detalle se perdía sin que nada avisara.
+
+    El guion bajo del nombre indica que es de uso interno, igual que
+    en src.contraste.
+
+    Args:
+        fallo: la excepción de la que se quiere el detalle.
+
+    Returns:
+        El texto que sigue a la marca técnica, o una cadena vacía si
+        el error no trae esa línea.
+    """
+    for linea in reversed(str(fallo).split("\n")):
+        if linea.startswith(MARCA_TECNICA):
+            return linea[len(MARCA_TECNICA):].strip()
+    return ""
 
 
 def con_reintento(
@@ -88,8 +116,10 @@ def con_reintento(
     # un TypeError confuso, lejos de donde está el problema real.
     if intentos < 1:
         raise ValueError(
-            "[usuario] No pudimos completar tu consulta. Intenta nuevamente en unos minutos.\n"
-            f"[técnico] intentos debe ser 1 o más, llegó {intentos}.")
+            "[usuario] No pudimos completar tu consulta. Intenta "
+            "nuevamente en unos minutos.\n"
+            f"{MARCA_TECNICA}intentos debe ser 1 o más, llegó "
+            f"{intentos}.")
 
     for intento in range(1, intentos + 1):
         try:
@@ -106,8 +136,12 @@ def con_reintento(
             # técnica del propio error, que ya lo trae. Sin esto el
             # aviso diría algo genérico y el error final diría otra
             # cosa, que es justo lo que confunde al leer.
-            causa = (str(fallo).split("\n")[-1]
-                     .replace("[técnico] ", "").split(". ")[0].rstrip("."))
+            causa = _linea_tecnica(fallo).split(". ")[0].strip(" .")
+            # Si el error llegara sin línea técnica, o con una vacía,
+            # el aviso saldría con dos puntos seguidos y sin decir
+            # nada. El nombre del tipo es poco, pero no es un hueco.
+            if not causa:
+                causa = type(fallo).__name__
             # La espera se duplica en cada intento en vez de ser
             # siempre la misma. Si el proveedor frenó por exceso de
             # uso, volver a los 2 segundos cae dentro de la misma
@@ -203,12 +237,16 @@ def consultar_modelo(
         # programa. Pegar el mensaje entero dejaría un [usuario]
         # metido adentro de un [técnico] y el bloque pasaría a tres
         # líneas, rompiendo el formato de dos partes.
-        partes = str(fallo).split("\n")
-        usuario = partes[0].replace("[usuario] ", "")
-        detalle = partes[-1].replace("[técnico] ", "")
-        raise RuntimeError(
-            f"[usuario] {usuario}\n"
-            f"[técnico] Se agotaron los {INTENTOS} intentos. {detalle}")
+        usuario = str(fallo).split("\n")[0].replace("[usuario] ", "")
+        detalle = _linea_tecnica(fallo)
+        # El detalle se pega solo si vino. Si no, el mensaje queda en
+        # la cuenta de intentos, que ya es algo, y no con un espacio
+        # suelto al final.
+        tecnico = f"Se agotaron los {INTENTOS} intentos."
+        if detalle:
+            tecnico = f"{tecnico} {detalle}"
+        raise RuntimeError(f"[usuario] {usuario}\n"
+                           f"{MARCA_TECNICA}{tecnico}")
 
     # El ValueError de la credencial no se toca. Sigue propagándose
     # tal cual, porque ya trae un mensaje claro desde enviar_peticion.

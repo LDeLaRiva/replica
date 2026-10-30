@@ -1,0 +1,26 @@
+[
+  {
+    "consulta": "¿Cuántos días de permiso por fallecimiento de un hijo establece el Código del Trabajo chileno?",
+    "referencia": "El trabajador tiene derecho a diez días corridos de permiso pagado, adicionales al feriado anual.",
+    "respuesta": "El Código del Trabajo chileno establece un permiso de siete días corridos en caso de fallecimiento de un hijo.",
+    "precision": 0.2631578947368421,
+    "cobertura": 0.3333333333333333,
+    "f1": 0.29411764705882354
+  },
+  {
+    "consulta": "¿Cuántas horas semanales dura la jornada ordinaria de trabajo en Chile?",
+    "referencia": "Desde abril de 2026, la jornada ordinaria de trabajo no puede exceder de cuarenta y dos horas semanales.",
+    "respuesta": "La jornada ordinaria de trabajo en Chile tiene una duración máxima de 44 horas semanales, las cuales se reducirán a 40 horas hacia el año 2028.",
+    "precision": 0.3076923076923077,
+    "cobertura": 0.4444444444444444,
+    "f1": 0.3636363636363637
+  },
+  {
+    "consulta": "¿Cuántos días de feriado anual corresponden a un trabajador con más de un año de servicio?",
+    "referencia": "El trabajador con más de un año de servicio tiene derecho a quince días hábiles de feriado anual.",
+    "respuesta": "A un trabajador con más de un año de servicio en Chile le corresponden como mínimo 15 días hábiles de feriado anual con remuneración íntegra.",
+    "precision": 0.56,
+    "cobertura": 0.7777777777777778,
+    "f1": 0.6511627906976745
+  }
+]

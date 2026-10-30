@@ -13,7 +13,7 @@ y src.cliente.time.sleep, con el mismo prefijo src. que usa el resto
 del proyecto. Así Python carga cada archivo una sola vez, en vez de
 dos veces bajo dos nombres distintos.
 
-Se corre desde la raíz del repositorio con
+Se corre con  desde la raíz:
 `pytest src/test_cliente.py -v`
 """
 
@@ -142,6 +142,37 @@ def test_enviar_peticion_exito():
     assert resultado == RESPUESTA_SIMULADA
 
 
+def test_enviar_peticion_deja_el_mensaje_en_dos_lineas():
+    """El cuerpo que devuelve el servicio no rompe las dos partes.
+
+    Lo que contesta el proveedor en un error es JSON con saltos de
+    línea. Si entrara tal cual al mensaje, este pasaría de dos líneas
+    a ocho, y quien después busque la parte técnica se encontraría
+    con una llave de cierre en vez del detalle.
+
+    Es lo que hacía que el aviso de reintento saliera sin causa.
+    """
+    cuerpo_json = '{\n  "error": {\n    "code": 429\n  }\n}\n'
+
+    # Los dos caminos que meten el cuerpo del servicio en el mensaje.
+    # El 429 sale como TimeoutError y cualquier otro código como
+    # RuntimeError, pero el formato de dos partes es el mismo.
+    for codigo, tipo in ((429, TimeoutError), (418, RuntimeError)):
+        respuesta_falsa = Mock(status_code=codigo, text=cuerpo_json,
+                               headers={})
+
+        with patch("src.consumir_gemini.requests.post",
+                   return_value=respuesta_falsa):
+            with pytest.raises(tipo) as capturado:
+                enviar_peticion(URL, CABECERAS, CUERPO)
+
+        lineas = str(capturado.value).split("\n")
+
+        assert len(lineas) == 2
+        assert lineas[0].startswith("[usuario] ")
+        assert lineas[1].startswith("[técnico] ")
+
+
 # ===== con_reintento ==================================================
 
 def test_con_reintento_reintenta_en_timeout():
@@ -206,6 +237,42 @@ def test_con_reintento_agota_intentos():
     assert llamadas["n"] == 3
 
 
+def test_con_reintento_avisa_la_causa_aunque_el_error_venga_raro():
+    """El aviso nombra la causa, sea cual sea la forma del mensaje.
+
+    La causa se sacaba de la última línea del error, a ciegas. Un
+    mensaje que termina en salto de línea deja esa última vacía, y el
+    aviso salía con dos puntos seguidos y sin decir qué pasó.
+
+    Se prueban las dos formas que lo provocaban. Cuando no hay línea
+    técnica, el nombre del tipo es poco, pero no es un hueco.
+    """
+    casos = [
+        ("[usuario] Ocupado.\n[técnico] El servicio respondió 429.\n",
+         "El servicio respondió 429"),
+        ("se acabó el tiempo de espera", "TimeoutError"),
+    ]
+
+    for mensaje, esperado in casos:
+        avisos = []
+        llamadas = {"n": 0}
+
+        def falla_la_primera_vez():
+            llamadas["n"] += 1
+            if llamadas["n"] == 1:
+                raise TimeoutError(mensaje)
+            return "listo"
+
+        with patch("src.cliente.time.sleep"):
+            con_reintento(falla_la_primera_vez, avisar=avisos.append)
+
+        assert esperado in avisos[0]
+        assert ". ." not in avisos[0]
+        # El aviso lo lee quien está mirando la terminal, así que
+        # la marca interna no tiene por qué aparecer ahí.
+        assert "[técnico]" not in avisos[0]
+
+
 # ===== registrar_costo ================================================
 
 def test_registrar_costo_calcula_bien():
@@ -243,6 +310,25 @@ def test_consultar_modelo_convierte_error():
     with patch("src.cliente.con_reintento", side_effect=agotado):
         with pytest.raises(RuntimeError, match="intentos"):
             consultar_modelo("pregunta de prueba")
+
+
+def test_consultar_modelo_no_deja_el_detalle_colgando():
+    """Sin detalle técnico, el mensaje termina en la cuenta de intentos.
+
+    Cuando el error que llega no trae línea técnica, no hay nada que
+    pegar después de "Se agotaron los 3 intentos". Sin la condición
+    que lo comprueba, el mensaje quedaba con un espacio suelto al
+    final.
+    """
+    sin_detalle = TimeoutError("se acabó el tiempo de espera")
+
+    with patch("src.cliente.con_reintento", side_effect=sin_detalle):
+        with pytest.raises(RuntimeError) as capturado:
+            consultar_modelo("pregunta de prueba")
+
+    tecnica = str(capturado.value).split("\n")[-1]
+
+    assert tecnica == "[técnico] Se agotaron los 3 intentos."
 
 
 def test_consultar_modelo_propaga_value_error():

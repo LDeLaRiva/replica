@@ -225,19 +225,25 @@ def enviar_peticion(url, headers, body):
     if respuesta.status_code == 429 or respuesta.status_code >= 500:
         espera = respuesta.headers.get("Retry-After")
         sugerido = f" Sugiere esperar {espera}s." if espera else ""
+        # El cuerpo que devuelve el servicio es JSON con saltos de
+        # línea. Si entrara tal cual, el mensaje dejaría de tener dos
+        # partes y quien busque la línea técnica más arriba se
+        # encontraría con una llave de cierre en vez del detalle.
+        cuerpo = " ".join(respuesta.text[:200].split())
         raise TimeoutError(
             f"{MENSAJE_GENERICO}\n"
             f"[técnico] El servicio respondió "
-            f"{respuesta.status_code}.{sugerido} "
-            f"{respuesta.text[:200]}")
+            f"{respuesta.status_code}.{sugerido} {cuerpo}")
 
     # Un código de error del servicio no levanta excepción, llega como
     # respuesta normal, así que hay que revisarlo a mano.
     if respuesta.status_code != 200:
+        # Mismo motivo que arriba, el cuerpo en una sola línea.
+        cuerpo = " ".join(respuesta.text[:300].split())
         raise RuntimeError(
             f"{MENSAJE_GENERICO}\n"
             f"[técnico] El servicio respondió "
-            f"{respuesta.status_code}. {respuesta.text[:300]}")
+            f"{respuesta.status_code}. {cuerpo}")
 
     try:
         return respuesta.json()
