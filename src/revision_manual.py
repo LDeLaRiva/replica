@@ -1,5 +1,8 @@
 """Revisión manual de una muestra de resultados, Bloque 17.
 
+No consulta al modelo. Trabaja sobre el archivo que dejó
+pipeline_texto.py, así que correrlo no gasta cuota.
+
 La muestra junta los cinco F1 más bajos y los cinco más altos. Los
 bajos muestran dónde el cliente falla de verdad. Los altos confirman
 que un puntaje casi perfecto significa una respuesta casi perfecta, y
@@ -7,6 +10,14 @@ no un falso positivo. Revisar solo los bajos dejaría sin ver justo los
 casos que más confianza indebida generan, porque el número dice que
 todo está bien.
 
+************************************************************
+Cuando los resultados son nuevos hay que correrlo dos veces. La
+primera muestra los diez casos en pantalla y no guarda nada. Las
+calificaciones se escriben a mano en la lista revision_manual de más
+abajo, y la segunda corrida es la que genera revision_manual.json.
+Las calificaciones no se recalculan solas, así que si se vuelve a
+correr pipeline_texto.py hay que revisar los diez casos de nuevo.
+****************************************************************
 
 Se corre con el botón de ejecutar, o desde la terminal con
 `python src/revision_manual.py`
