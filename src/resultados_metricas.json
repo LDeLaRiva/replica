@@ -2,25 +2,161 @@
   {
     "consulta": "¿Cuántos días de permiso por fallecimiento de un hijo establece el Código del Trabajo chileno?",
     "referencia": "El trabajador tiene derecho a diez días corridos de permiso pagado, adicionales al feriado anual.",
-    "respuesta": "El Código del Trabajo chileno establece un permiso de siete días corridos en caso de fallecimiento de un hijo.",
-    "precision": 0.2631578947368421,
-    "cobertura": 0.3333333333333333,
-    "f1": 0.29411764705882354
+    "respuesta": "El Código del Trabajo chileno establece un permiso de diez días corridos en caso de fallecimiento de un hijo.",
+    "precision": 0.3157894736842105,
+    "cobertura": 0.4,
+    "f1": 0.35294117647058826
   },
   {
     "consulta": "¿Cuántas horas semanales dura la jornada ordinaria de trabajo en Chile?",
     "referencia": "Desde abril de 2026, la jornada ordinaria de trabajo no puede exceder de cuarenta y dos horas semanales.",
-    "respuesta": "La jornada ordinaria de trabajo en Chile tiene una duración máxima de 44 horas semanales, las cuales se reducirán a 40 horas hacia el año 2028.",
-    "precision": 0.3076923076923077,
-    "cobertura": 0.4444444444444444,
-    "f1": 0.3636363636363637
+    "respuesta": "A partir del 26 de abril de 2024, la jornada ordinaria máxima de trabajo en Chile es de 44 horas semanales, las cuales se reducirán a 40 horas a partir de abril de 2028.",
+    "precision": 0.29411764705882354,
+    "cobertura": 0.5555555555555556,
+    "f1": 0.3846153846153846
   },
   {
     "consulta": "¿Cuántos días de feriado anual corresponden a un trabajador con más de un año de servicio?",
     "referencia": "El trabajador con más de un año de servicio tiene derecho a quince días hábiles de feriado anual.",
-    "respuesta": "A un trabajador con más de un año de servicio en Chile le corresponden como mínimo 15 días hábiles de feriado anual con remuneración íntegra.",
-    "precision": 0.56,
+    "respuesta": "A un trabajador con más de un año de servicio en Chile le corresponden como mínimo quince días hábiles de feriado anual con remuneración íntegra.",
+    "precision": 0.6,
+    "cobertura": 0.8333333333333334,
+    "f1": 0.6976744186046512
+  },
+  {
+    "consulta": "¿Cuántos días de permiso corresponden por el fallecimiento del cónyuge o conviviente civil?",
+    "referencia": "El trabajador tiene derecho a siete días corridos de permiso pagado.",
+    "respuesta": "Conforme a la legislación laboral chilena, por el fallecimiento del cónyuge o conviviente civil corresponden siete días corridos de permiso pagado.",
+    "precision": 0.38095238095238093,
+    "cobertura": 0.7272727272727273,
+    "f1": 0.5
+  },
+  {
+    "consulta": "¿Cuántos días de permiso corresponden por el fallecimiento del padre o de la madre?",
+    "referencia": "El trabajador tiene derecho a cuatro días hábiles de permiso pagado.",
+    "respuesta": "Conforme a la legislación laboral chilena, por el fallecimiento del padre o de la madre corresponden cuatro días de permiso pagado.",
+    "precision": 0.3333333333333333,
+    "cobertura": 0.6363636363636364,
+    "f1": 0.43749999999999994
+  },
+  {
+    "consulta": "¿Cuántos días de permiso da el Código del Trabajo chileno por matrimonio o acuerdo de unión civil?",
+    "referencia": "Corresponden cinco días hábiles continuos de permiso pagado.",
+    "respuesta": "El Código del Trabajo chileno otorga cinco días hábiles continuos de permiso pagado por matrimonio o acuerdo de unión civil, los cuales se pueden usar desde el día del enlace o en los días inmediatamente anteriores o posteriores.",
+    "precision": 0.18421052631578946,
+    "cobertura": 0.875,
+    "f1": 0.30434782608695654
+  },
+  {
+    "consulta": "¿Cuántos días de permiso tiene el padre trabajador por el nacimiento de un hijo?",
+    "referencia": "El padre tiene derecho a cinco días de permiso pagado por el nacimiento de un hijo.",
+    "respuesta": "El padre trabajador tiene derecho a un permiso pagado de cinco días continuos en caso de nacimiento de un hijo, el cual puede utilizar desde el momento del parto a su elección.",
+    "precision": 0.46875,
+    "cobertura": 0.9375,
+    "f1": 0.625
+  },
+  {
+    "consulta": "¿Cuántas horas extraordinarias como máximo se pueden trabajar en un día en Chile?",
+    "referencia": "Se pueden pactar como máximo dos horas extraordinarias por día.",
+    "respuesta": "Según la legislación chilena, se pueden trabajar como máximo dos horas extraordinarias por día.",
+    "precision": 0.6428571428571429,
+    "cobertura": 0.9,
+    "f1": 0.75
+  },
+  {
+    "consulta": "¿Con qué recargo mínimo se pagan las horas extraordinarias en Chile?",
+    "referencia": "Las horas extraordinarias se pagan con un recargo mínimo del 50 por ciento sobre el sueldo convenido.",
+    "respuesta": "Según la legislación laboral chilena, las horas extraordinarias se pagan con un recargo mínimo del 50% sobre el sueldo convenido para la jornada ordinaria.",
+    "precision": 0.625,
+    "cobertura": 0.8823529411764706,
+    "f1": 0.7317073170731708
+  },
+  {
+    "consulta": "¿En qué plazo debe el empleador escriturar el contrato de trabajo?",
+    "referencia": "El contrato debe escriturarse dentro de 15 días desde la incorporación del trabajador.",
+    "respuesta": "El empleador debe escriturar el contrato de trabajo en el plazo de quince días desde la incorporación del trabajador, o de cinco días si la duración de este es inferior a treinta días.",
+    "precision": 0.30303030303030304,
+    "cobertura": 0.7692307692307693,
+    "f1": 0.43478260869565216
+  },
+  {
+    "consulta": "¿En qué plazo debe el empleador pagar el finiquito?",
+    "referencia": "El finiquito debe pagarse dentro de 10 días hábiles contados desde la separación del trabajador.",
+    "respuesta": "El empleador debe pagar el finiquito dentro del plazo de 10 días hábiles contados desde la separación del trabajador.",
+    "precision": 0.7368421052631579,
+    "cobertura": 0.9333333333333333,
+    "f1": 0.8235294117647058
+  },
+  {
+    "consulta": "¿Puede el empleador despedir por necesidades de la empresa sin avisar con 30 días de anticipación?",
+    "referencia": "Sí, pero debe pagar una indemnización sustitutiva del aviso previo equivalente a 30 días de remuneración.",
+    "respuesta": "Sí, el empleador puede hacerlo, pero en ese caso debe pagar una indemnización sustitutiva equivalente a la última remuneración mensual.",
+    "precision": 0.5,
+    "cobertura": 0.625,
+    "f1": 0.5555555555555556
+  },
+  {
+    "consulta": "¿Cuál es el tope de años de la indemnización por años de servicio en Chile?",
+    "referencia": "La indemnización por años de servicio tiene un tope de 11 años, equivalente a 330 días de remuneración.",
+    "respuesta": "El tope máximo legal para la indemnización por años de servicio en Chile es de 11 años trabajados para un mismo empleador.",
+    "precision": 0.5,
+    "cobertura": 0.6111111111111112,
+    "f1": 0.55
+  },
+  {
+    "consulta": "¿Cuántas semanas dura el descanso prenatal en Chile?",
+    "referencia": "El descanso prenatal dura seis semanas antes del parto.",
+    "respuesta": "El descanso prenatal en Chile dura seis semanas antes de la fecha estimada de parto.",
+    "precision": 0.5333333333333333,
+    "cobertura": 0.8888888888888888,
+    "f1": 0.6666666666666667
+  },
+  {
+    "consulta": "¿Cuántas semanas dura el descanso postnatal en Chile?",
+    "referencia": "El descanso postnatal dura doce semanas después del parto.",
+    "respuesta": "El descanso postnatal en Chile dura doce semanas, las cuales se extienden a dieciocho semanas en caso de parto múltiple.",
+    "precision": 0.35,
     "cobertura": 0.7777777777777778,
-    "f1": 0.6511627906976745
+    "f1": 0.48275862068965514
+  },
+  {
+    "consulta": "¿Puede compensarse en dinero el feriado anual mientras el contrato de trabajo sigue vigente?",
+    "referencia": "No, el feriado anual no puede compensarse en dinero mientras la relación laboral está vigente.",
+    "respuesta": "No, el feriado anual no puede compensarse en dinero mientras el contrato de trabajo siga vigente, salvo en el caso de término de la relación laboral o cuando el trabajador tenga exceso de feriado acumulado y así lo acuerde con el empleador.",
+    "precision": 0.3333333333333333,
+    "cobertura": 0.9333333333333333,
+    "f1": 0.4912280701754386
+  },
+  {
+    "consulta": "¿Puede el empleador despedir a una trabajadora con fuero maternal?",
+    "referencia": "No, el empleador no puede despedirla sin autorización judicial previa del juzgado del trabajo.",
+    "respuesta": "No, el empleador no puede despedirla, ya que el fuero maternal otorga inamovilidad en su empleo y requiere de una autorización judicial previa (desafecto) para poder poner término a su contrato.",
+    "precision": 0.2903225806451613,
+    "cobertura": 0.6428571428571429,
+    "f1": 0.4
+  },
+  {
+    "consulta": "¿Se pueden pactar horas extraordinarias de forma permanente en Chile?",
+    "referencia": "No, los pactos de horas extraordinarias duran como máximo tres meses y se pueden renovar.",
+    "respuesta": "No, en Chile las horas extraordinarias no se pueden pactar de forma permanente, ya que solo proceden para atender necesidades o situaciones temporales de la empresa y por un máximo de dos horas al día.",
+    "precision": 0.22857142857142856,
+    "cobertura": 0.5333333333333333,
+    "f1": 0.32
+  },
+  {
+    "consulta": "¿Se pueden compensar en dinero los días de permiso por fallecimiento de un familiar?",
+    "referencia": "No, los días de permiso por fallecimiento no pueden compensarse en dinero.",
+    "respuesta": "No, los días de permiso por fallecimiento de un familiar contemplados en la legislación laboral chilena no son compensables en dinero, ya que su única finalidad es otorgar tiempo libre al trabajador para ausentarse de sus labores ante el duelo.",
+    "precision": 0.25,
+    "cobertura": 0.8333333333333334,
+    "f1": 0.3846153846153846
+  },
+  {
+    "consulta": "¿El tiempo de colación se cuenta como parte de la jornada de trabajo?",
+    "referencia": "No, el tiempo de colación no se considera parte de la jornada de trabajo.",
+    "respuesta": "No, el tiempo destinado a la colación no se considera parte de la jornada de trabajo ni es imputable a ella, salvo que las partes pacten lo contrario.",
+    "precision": 0.4642857142857143,
+    "cobertura": 0.9285714285714286,
+    "f1": 0.6190476190476191
   }
 ]

@@ -194,13 +194,11 @@ if __name__ == "__main__":
     # El módulo no usa colores, solo esta demostración.
     from src.contraste import *                       # noqa: E402, F403
 
-    # El archivo de resultados queda al lado de este script, igual que
-    # registro_resultados.json queda al lado de test_consistencia.py.
-    # La ruta se arma desde __file__ y no desde la carpeta actual, para
-    # que caiga siempre en el mismo lugar sin importar desde dónde se
-    # lance el programa.
-    RUTA_RESULTADOS = Path(__file__).resolve().parent / \
-        "resultados_metricas.json"
+    # El archivo de resultados queda al lado de este script. Con el
+    # nombre a secas se guardaría en la carpeta donde está la terminal,
+    # que no siempre es esta.
+    CARPETA = Path(__file__).resolve().parent
+    RUTA_RESULTADOS = CARPETA / "resultados_metricas.json"
 
     # ===== Primera parte, el pipeline a solas ========================
     #
@@ -228,19 +226,28 @@ if __name__ == "__main__":
 
     # ===== Segunda parte, sobre respuestas reales ====================
     #
-    # Consultas que sí gastan cuota. Son tres, y cada una se usa para
-    # las dos mediciones. La del Bloque 15, que compara el texto crudo
-    # contra el procesado, y la del Bloque 16, que calcula precisión,
+    # Consultas que sí gastan cuota. Cada una se usa para las dos
+    # mediciones. La del Bloque 15, que compara el texto crudo contra
+    # el procesado, y la del Bloque 16, que calcula precisión,
     # cobertura y F1. Preguntar dos veces lo mismo costaría el doble
     # sin agregar nada.
+    #
+    # Son veinte porque el Bloque 17 pide al menos veinte respuestas
+    # para poder revisar una muestra de diez a mano.
 
     # La referencia es lo que esperamos que conteste, escrita a mano, y
     # es contra eso que se compara la respuesta real del modelo.
     #
-    # Los tres datos están verificados contra la Dirección del Trabajo.
+    # Los veinte datos están verificados en la Dirección del Trabajo.
     # El de la jornada cambió en abril de 2026, así que es posible que
     # el modelo conteste 45 o 40 horas. Si pasa, no es una falla del
     # ejercicio, es un hallazgo sobre lo desactualizado que puede estar.
+    #
+    # Las cifras van mezcladas en palabras y en dígitos a propósito,
+    # porque así escribe una persona y la métrica cuenta "10" y "diez"
+    # como palabras distintas. Las cinco últimas tienen "no" por
+    # respuesta, que es donde la métrica más se equivoca, porque le
+    # falta una sola palabra y el puntaje casi no baja.
     CASOS = [
         ("¿Cuántos días de permiso por fallecimiento de un hijo "
          "establece el Código del Trabajo chileno?",
@@ -256,15 +263,96 @@ if __name__ == "__main__":
          "con más de un año de servicio?",
          "El trabajador con más de un año de servicio tiene derecho a "
          "quince días hábiles de feriado anual."),
+
+        ("¿Cuántos días de permiso corresponden por el fallecimiento "
+         "del cónyuge o conviviente civil?",
+         "El trabajador tiene derecho a siete días corridos de "
+         "permiso pagado."),
+
+        ("¿Cuántos días de permiso corresponden por el fallecimiento "
+         "del padre o de la madre?",
+         "El trabajador tiene derecho a cuatro días hábiles de "
+         "permiso pagado."),
+
+        ("¿Cuántos días de permiso da el Código del Trabajo chileno "
+         "por matrimonio o acuerdo de unión civil?",
+         "Corresponden cinco días hábiles continuos de permiso "
+         "pagado."),
+
+        ("¿Cuántos días de permiso tiene el padre trabajador por el "
+         "nacimiento de un hijo?",
+         "El padre tiene derecho a cinco días de permiso pagado por "
+         "el nacimiento de un hijo."),
+
+        ("¿Cuántas horas extraordinarias como máximo se pueden "
+         "trabajar en un día en Chile?",
+         "Se pueden pactar como máximo dos horas extraordinarias por "
+         "día."),
+
+        ("¿Con qué recargo mínimo se pagan las horas extraordinarias "
+         "en Chile?",
+         "Las horas extraordinarias se pagan con un recargo mínimo "
+         "del 50 por ciento sobre el sueldo convenido."),
+
+        ("¿En qué plazo debe el empleador escriturar el contrato de "
+         "trabajo?",
+         "El contrato debe escriturarse dentro de 15 días desde la "
+         "incorporación del trabajador."),
+
+        ("¿En qué plazo debe el empleador pagar el finiquito?",
+         "El finiquito debe pagarse dentro de 10 días hábiles "
+         "contados desde la separación del trabajador."),
+
+        ("¿Puede el empleador despedir por necesidades de la empresa "
+         "sin avisar con 30 días de anticipación?",
+         "Sí, pero debe pagar una indemnización sustitutiva del aviso "
+         "previo equivalente a 30 días de remuneración."),
+
+        ("¿Cuál es el tope de años de la indemnización por años de "
+         "servicio en Chile?",
+         "La indemnización por años de servicio tiene un tope de 11 "
+         "años, equivalente a 330 días de remuneración."),
+
+        ("¿Cuántas semanas dura el descanso prenatal en Chile?",
+         "El descanso prenatal dura seis semanas antes del parto."),
+
+        ("¿Cuántas semanas dura el descanso postnatal en Chile?",
+         "El descanso postnatal dura doce semanas después del parto."),
+
+        ("¿Puede compensarse en dinero el feriado anual mientras el "
+         "contrato de trabajo sigue vigente?",
+         "No, el feriado anual no puede compensarse en dinero "
+         "mientras la relación laboral está vigente."),
+
+        ("¿Puede el empleador despedir a una trabajadora con fuero "
+         "maternal?",
+         "No, el empleador no puede despedirla sin autorización "
+         "judicial previa del juzgado del trabajo."),
+
+        ("¿Se pueden pactar horas extraordinarias de forma permanente "
+         "en Chile?",
+         "No, los pactos de horas extraordinarias duran como máximo "
+         "tres meses y se pueden renovar."),
+
+        ("¿Se pueden compensar en dinero los días de permiso por "
+         "fallecimiento de un familiar?",
+         "No, los días de permiso por fallecimiento no pueden "
+         "compensarse en dinero."),
+
+        ("¿El tiempo de colación se cuenta como parte de la jornada "
+         "de trabajo?",
+         "No, el tiempo de colación no se considera parte de la "
+         "jornada de trabajo."),
     ]
 
     # La instrucción pide brevedad a propósito. La precisión divide las
     # coincidencias por el largo de la respuesta, así que una respuesta
     # larga la hunde aunque diga lo correcto.
-    INSTRUCCION = ("Responde en una sola oración breve, en español y "
-                   "sin viñetas.")
+    INSTRUCCION = ("Responde según la legislación laboral chilena "
+               "vigente, en una sola oración breve, en español y "
+               "sin viñetas.")
 
-    titulobn("\nEl pipeline sobre respuestas reales")
+    titulobn("\n\n*** El pipeline sobre respuestas reales ***")
     notabn(f"\nSe hacen {len(CASOS)} consultas al modelo y se compara "
            f"cada respuesta\ncontra una referencia escrita a mano.")
 
@@ -280,8 +368,7 @@ if __name__ == "__main__":
         try:
             respuesta = consultar_modelo(pregunta, INSTRUCCION)
         except (ValueError, RuntimeError) as fallo:
-            # Se informa y se sigue con el resto. Una consulta que falló
-            # no tiene por qué botar las otras dos, que ya se pagaron.
+            # Se informa y se sigue con el resto.
             errorbn(f"\n  El caso {numero} no se pudo consultar.")
             avisofn(f"\n{fallo}")
             continue
@@ -290,8 +377,7 @@ if __name__ == "__main__":
         exitobn(f"\n  Respuesta del modelo\n    {respuesta}")
 
         # El antes.
-        # Se parte por espacios, sin limpiar nada, que es el error
-        # a evitar.
+        # Se parte por espacios, sin limpiar nada, que es el error a evitar.
         crudo_ref = referencia.split()
         crudo_resp = respuesta.split()
         comunes_crudo = set(crudo_ref) & set(crudo_resp)
@@ -302,8 +388,8 @@ if __name__ == "__main__":
 
         # El después.
         # El mismo cálculo, con los dos lados procesados.
-        # Procesar un solo lado dejaría la comparación igual de
-        # torcida. Se escribe completo y no en una función, para que
+        # Procesar un solo lado dejaría la comparación torcida.
+        # Se escribe completo y no en una función, para que
         # la única diferencia entre los dos bloques sea visible.
         tokens_ref = procesar_texto(referencia)
         tokens_resp = procesar_texto(respuesta)
@@ -362,12 +448,15 @@ if __name__ == "__main__":
     salfn(f"  Precisión   {resumen['precision_promedio']:.3f}\n"
           f"  Cobertura   {resumen['cobertura_promedio']:.3f}\n"
           f"  F1          {resumen['f1_promedio']:.3f}")
-    notabn("\n  Un promedio no dice si hay tres respuestas regulares o "
-           "dos\n  buenas y una mala. Para eso está la lista de abajo.")
+    notabn("\n  Un promedio no dice si todas salieron regulares o si "
+           "hay unas\n  muy buenas y otras malas. Para eso está la "
+           "lista de abajo.")
 
     # Ordenadas de peor a mejor. Revisar primero las peores rinde más
     # que revisarlas en el orden en que se generaron. Se muestran las
-    # tres peores, que con tres casos son todas.
+    # tres peores, que es lo que pide el Bloque 16. La muestra de diez
+    # que pide el Bloque 17 se arma aparte, en revision_manual.py,
+    # leyendo el archivo que se guarda más abajo.
     titulofn("\nLos peores casos, por F1")
     peores_casos = sorted(resultados, key=lambda r: r["f1"])
     for caso in peores_casos[:3]:

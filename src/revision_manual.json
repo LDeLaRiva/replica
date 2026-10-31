@@ -1,0 +1,82 @@
+[
+  {
+    "consulta": "¿Cuántos días de permiso da el Código del Trabajo chileno por matrimonio o acuerdo de unión civil?",
+    "f1": 0.304,
+    "correccion_factual": "si",
+    "completitud": "si",
+    "contradiccion": "no",
+    "nota": "respuesta completa y correcta, incluido el detalle de cuándo usar los días. saca el F1 más bajo de los veinte solo por ser larga, con precisión 0.184"
+  },
+  {
+    "consulta": "¿Se pueden pactar horas extraordinarias de forma permanente en Chile?",
+    "f1": 0.32,
+    "correccion_factual": "si",
+    "completitud": "parcialmente",
+    "contradiccion": "no",
+    "nota": "contesta bien que no se puede de forma permanente, pero habla del límite diario cuando la referencia habla del pacto. omite los tres meses y la renovación, y pone en su lugar el máximo de dos horas al día, que también es correcto"
+  },
+  {
+    "consulta": "¿Cuántos días de permiso por fallecimiento de un hijo establece el Código del Trabajo chileno?",
+    "f1": 0.353,
+    "correccion_factual": "si",
+    "completitud": "parcialmente",
+    "contradiccion": "no",
+    "nota": "el número está bien, pero se come que el permiso es pagado y que es adicional al feriado anual. aquí la cobertura de 0.400 sí refleja una respuesta incompleta, la métrica acertó"
+  },
+  {
+    "consulta": "¿Cuántas horas semanales dura la jornada ordinaria de trabajo en Chile?",
+    "f1": 0.385,
+    "correccion_factual": "no",
+    "completitud": "si",
+    "contradiccion": "no",
+    "nota": "dice que la jornada es de 44 horas. desde el 26 de abril de 2026 son 42. describe el tramo de 2024 como si fuera el vigente y se salta el actual. el mismo error escrito con las palabras de la referencia habría sacado 0.944"
+  },
+  {
+    "consulta": "¿Se pueden compensar en dinero los días de permiso por fallecimiento de un familiar?",
+    "f1": 0.385,
+    "correccion_factual": "si",
+    "completitud": "si",
+    "contradiccion": "no",
+    "nota": "respuesta correcta y completa, con el motivo incluido. precisión 0.250 solo por el largo, igual que el caso del matrimonio. segundo caso donde la métrica castiga una respuesta sin errores"
+  },
+  {
+    "consulta": "¿Cuántas semanas dura el descanso prenatal en Chile?",
+    "f1": 0.667,
+    "correccion_factual": "si",
+    "completitud": "si",
+    "contradiccion": "no",
+    "nota": "prácticamente idéntica a la referencia y sin ningún error. el 0.667 es el techo real de este pipeline, porque pierde puntos solo por decir en Chile y fecha estimada"
+  },
+  {
+    "consulta": "¿Cuántos días de feriado anual corresponden a un trabajador con más de un año de servicio?",
+    "f1": 0.698,
+    "correccion_factual": "si",
+    "completitud": "si",
+    "contradiccion": "no",
+    "nota": "correcta, y las dos cosas que agrega también lo son. el feriado es con remuneración íntegra y es un mínimo, porque el progresivo suma días con la antigüedad"
+  },
+  {
+    "consulta": "¿Con qué recargo mínimo se pagan las horas extraordinarias en Chile?",
+    "f1": 0.732,
+    "correccion_factual": "si",
+    "completitud": "si",
+    "contradiccion": "no",
+    "nota": "correcta y con la misma cifra, pero la escribe 50% donde la referencia dice 50 por ciento. limpiar_texto borra el símbolo y se pierden las palabras por y ciento. con el mismo formato la cobertura sería 1.000 en vez de 0.882"
+  },
+  {
+    "consulta": "¿Cuántas horas extraordinarias como máximo se pueden trabajar en un día en Chile?",
+    "f1": 0.75,
+    "correccion_factual": "si",
+    "completitud": "si",
+    "contradiccion": "no",
+    "nota": "correcta y casi palabra por palabra. la única diferencia de contenido es pactar contra trabajar, y la Dirección del Trabajo usa las dos. pierde 0.15 de F1 por el preámbulo que sale de la instrucción"
+  },
+  {
+    "consulta": "¿En qué plazo debe el empleador pagar el finiquito?",
+    "f1": 0.824,
+    "correccion_factual": "si",
+    "completitud": "si",
+    "contradiccion": "no",
+    "nota": "la mejor respuesta de los veinte, casi palabra por palabra. lo único que falta es pagarse contra pagar. es el único caso donde referencia y respuesta escriben la cifra igual, 10 en dígitos"
+  }
+]
