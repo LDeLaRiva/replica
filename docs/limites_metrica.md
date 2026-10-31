@@ -75,3 +75,4 @@ src/revision_manual.json.
   de este corpus son cifras de normativa laboral, y ahí la métrica
   no distingue un dato correcto de uno falso.
 
+

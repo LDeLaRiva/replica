@@ -175,8 +175,6 @@ revision_manual = [
     },
 ]
 
-
-
 if __name__ == "__main__":
     # El módulo no usa colores, solo esta salida. contraste.py está en
     # esta misma carpeta, así que se importa directo.
