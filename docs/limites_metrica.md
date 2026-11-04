@@ -76,3 +76,74 @@ src/revision_manual.json.
   no distingue un dato correcto de uno falso.
 
 
+# 03 NOV 26
+
+## Acierta el dato y cita mal la fuente, de forma distinta cada vez
+
+Medido el 2026-11-03 sobre la ruta `consulta` de `enrutamiento.py`, en
+tres corridas de la misma pregunta por el permiso por fallecimiento de
+un hermano.
+
+Las tres veces acertó los cuatro días hábiles. Las tres veces citó mal.
+
+```text
+corrida 1    Código del Trabajo artículo 66 ter
+corrida 2    Código del Trabajo artículo 66 ter
+corrida 3    artículo 66 inciso primero del Código del Trabajo
+```
+
+El 66 ter regula el permiso para vacunación. El artículo correcto es el
+66, y dentro de él la regla del hermano está en el inciso segundo, no
+en el primero. El inciso primero es el del hijo y el del cónyuge.
+
+Lo que no cambia es que la cita está mal. Lo que cambia es en qué. Eso
+es más difícil de manejar que un error fijo, porque no se puede
+descartar mirando una sola corrida. El prompt ya restringe las fuentes
+al Código del Trabajo y a los dictámenes de la Dirección del Trabajo, y
+autoriza decir que no se sabe. Aun así cita con seguridad las tres
+veces.
+
+La métrica casi no lo registra. Contra una referencia correcta, la
+respuesta de la corrida 1 da F1 0.780 y la misma respuesta con la cita
+buena da 0.800. Una palabra de más, y esa palabra invalida el respaldo
+entero de la respuesta.
+
+## Omite una referencia cruzada del propio texto
+
+Medido el 2026-11-03 sobre la ruta `ley` de `enrutamiento.py`, en las
+mismas tres corridas.
+
+Con el artículo 66 completo delante, la explicación acierta los cuatro
+plazos y sus unidades, y se equivoca al resolver a quién alcanza el
+fuero.
+
+El artículo dice que goza de fuero "el trabajador al que se refiere el
+inciso primero", y ese inciso cubre dos casos, la muerte de un hijo y
+la del cónyuge o conviviente civil. La explicación lo deja solo en el
+hijo.
+
+```text
+- El trabajador que sufre la muerte de un hijo tiene protección
+  laboral, llamada fuero, por el período de un mes desde el día del
+  fallecimiento.
+```
+
+Este sí salió igual en las tres corridas. Acá no inventa, omite. Por eso
+es más difícil de ver que un dato falso, y una métrica de solapamiento
+la puntúa alto, porque todo lo que dice sí está en el texto. Lo que
+falta no se castiga.
+
+## Lo que muestran los dos casos juntos
+
+Las dos respuestas salieron del mismo modelo, el mismo día, sobre el
+mismo artículo. Lo único distinto fue si el texto estaba delante.
+
+La ruta que respondió de memoria citó mal la fuente las tres veces. La
+ruta que recibió el texto acertó los cuatro plazos las tres veces y
+solo falló en una referencia cruzada.
+
+Eso acota para qué sirve medir con solapamiento. Sirve para comparar
+respuestas de una misma ruta entre corridas. No sirve para decidir si
+una respuesta está respaldada, porque los dos errores de arriba son de
+respaldo y ninguno mueve el número lo suficiente como para aparecer en
+los peores casos.
