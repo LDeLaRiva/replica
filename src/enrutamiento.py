@@ -11,10 +11,22 @@ Las cuatro rutas son
     contrato   un contrato de trabajo completo
     ley        el texto de un artículo de una ley
 
+Son cuatro y no tres como el ejemplo de la lección, que propone
+agregar una cuarta categoría como ejercicio de cierre del Bloque 19.
+
 consulta es la ruta por defecto. Si la clasificación devuelve algo que
 ninguna condición reconoce, la entrada cae ahí sin lanzar error. Se
 eligió esa porque las otras tres suponen que llegó un documento, y sin
 documento responderían sobre algo que no está.
+
+El Bloque 20 agrega dos redes de seguridad, de distinto alcance.
+
+    with_fallbacks   protege una ruta puntual, acá la de consulta
+    try/except       protege el flujo completo, pase lo que pase
+
+Las dos dejan registro con logger antes de responder. Un fallo que se
+atiende sin anotarse en ninguna parte es un fallo que nadie va a
+encontrar después.
 
 Las plantillas quedan en el módulo porque no necesitan el modelo. Todo
 lo que sí lo necesita vive en el bloque de main, con el mismo criterio
@@ -22,7 +34,7 @@ del Bloque 18. Así pytest importa este archivo sin clave y sin gastar
 ninguna llamada.
 """
 
-
+import logging
 import os
 import textwrap
 
@@ -32,8 +44,15 @@ from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import (
     RunnableBranch,
+    RunnableLambda,
     RunnablePassthrough,
 )
+
+
+# getLogger solo crea el objeto, no configura nada ni imprime. La
+# configuración va en el bloque de main, para que importar este archivo
+# siga sin tener efectos.
+logger = logging.getLogger(__name__)
 
 
 # Las cuatro categorías van sin tilde a propósito. El .strip().lower()
@@ -96,6 +115,57 @@ plantilla_ley = PromptTemplate.from_template(
 )
 
 
+# Los dos textos de emergencia. Son distintos a propósito. El primero
+# es para cuando la ruta de consulta falló, o sea el flujo llegó a
+# responder y no pudo. El segundo es para cuando falló cualquier otra
+# cosa y ni siquiera se alcanzó a elegir una ruta.
+#
+# Ninguno de los dos se parece a una respuesta legal, y ninguno promete
+# que alguien va a contestar después. Decir que no se pudo es honesto.
+# Insinuar que la consulta quedó registrada no lo sería.
+#
+# Empiezan con palabras distintas a propósito, para que se vea de un
+# vistazo cuál de las dos redes actuó sin tener que compararlos letra
+# por letra.
+#
+# Las pruebas buscan "responder tu consulta" y "procesar tu mensaje".
+# Esas dos frases son lo único que no se puede tocar sin actualizar
+# también los assert de test_orquestacion.py. El resto del texto se
+# puede reescribir libremente.
+MENSAJE_RESPALDO = (
+    "Tuvimos un problema al responder tu consulta. Inténtalo "
+    "nuevamente en unos minutos. Si es urgente, puedes consultar "
+    "directamente en la Dirección del Trabajo."
+)
+
+MENSAJE_SEGURO = (
+    "No podemos procesar tu mensaje en este momento. Inténtalo "
+    "nuevamente en unos minutos. Si es urgente, puedes consultar "
+    "directamente en la Dirección del Trabajo."
+)
+
+
+def avisar_y_responder(entrada):
+    """Devuelve el texto de respaldo, y antes deja registro.
+
+    El argumento llega porque with_fallbacks le pasa la misma entrada
+    que recibió la ruta que falló. Acá no se usa, el texto es fijo.
+
+    La línea del logger es el motivo de que esto sea una función y no
+    una lambda que solo devuelve texto. with_fallbacks atrapa la
+    excepción por su cuenta y no anota nada, así que sin esta línea el
+    fallo quedaría invisible. El Bloque 20 insiste en que manejar un
+    error no es lo mismo que taparlo.
+    """
+    logger.error(
+        "La ruta de consulta falló, se entregó la respuesta de respaldo"
+    )
+    return MENSAJE_RESPALDO
+
+
+respuesta_generica = RunnableLambda(avisar_y_responder)
+
+
 def construir_paso_clasificacion(modelo):
     """Arma el paso que decide la categoría de la entrada.
 
@@ -113,6 +183,36 @@ def construir_paso_clasificacion(modelo):
         | StrOutputParser()
         | (lambda texto: texto.strip().lower())
     )
+
+
+def construir_cadena_consulta_segura(cadena_consulta):
+    """Envuelve la ruta de consulta con su respuesta de respaldo.
+
+    Si la ruta falla, LangChain ejecuta respuesta_generica en su lugar
+    y quien llamó recibe un texto útil, no una excepción.
+
+    Se protege esta ruta y no las otras tres por dos razones. Es la
+    ruta por defecto, así que recibe todo lo que no se clasificó. Y es
+    la única que responde sin un documento delante, de modo que si se
+    cae, la persona queda sin nada.
+
+    Las otras tres quedan cubiertas por el try/except de
+    procesar_mensaje_seguro, que es lo que el checklist del Bloque 20
+    permite cuando dice "su propio with_fallbacks o el try/except
+    general".
+
+    Va un solo respaldo, y no el de dos niveles que muestra la lección,
+    que antes del texto fijo reintenta con un modelo más simple. En una
+    mesa de soporte ese segundo intento es mejor que un texto fijo. Acá
+    no. Esta ruta responde de memoria, sin documento delante, y un
+    modelo más chico contestando sobre la ley inventa más. Una
+    respuesta legal equivocada hace más daño que decir que no se pudo.
+
+    Si algún día se quiere el respaldo con modelo secundario, el lugar
+    son las rutas de clausula, contrato y ley, que leen un texto que ya
+    les llegó y no dependen de lo que el modelo recuerde.
+    """
+    return cadena_consulta.with_fallbacks([respuesta_generica])
 
 
 def construir_cadena_con_enrutamiento(
@@ -152,6 +252,40 @@ def construir_cadena_con_enrutamiento(
         RunnablePassthrough.assign(categoria=paso_clasificacion)
         | bifurcacion
     )
+
+
+def procesar_mensaje_seguro(cadena, mensaje):
+    """Punto de entrada. Garantiza que siempre salga una respuesta.
+
+    Recibe la cadena como parámetro y no la lee del módulo, para que
+    una prueba pueda inyectar una cadena falsa. Es el mismo criterio de
+    construir_cadena_con_enrutamiento.
+
+    El except es ancho a propósito. Acá el objetivo no es distinguir
+    tipos de error como en el cliente del Módulo 2, es que ningún fallo
+    deje a la persona sin ninguna respuesta.
+
+    Ancho no quiere decir mudo. El logger registra el error real antes
+    de devolver el texto, porque si no, este try/except estaría
+    escondiendo el problema en vez de manejarlo.
+
+    Se usa exception y no error. El ejemplo de la lección muestra
+    error, pero su propio troubleshooting recomienda cambiarlo por
+    exception cuando el try/except pueda estar tapando el error real,
+    porque guarda además el camino completo hasta la línea que falló.
+
+    Con seis piezas en la cadena, saber cuál se cayó vale más que
+    saber que algo se cayó. Un KeyError, por ejemplo, con error se
+    registra como 'mensaje' a secas, y así no se encuentra nunca.
+
+    La persona recibe exactamente el mismo texto. El detalle va al
+    registro, no a la respuesta.
+    """
+    try:
+        return cadena.invoke({"mensaje": mensaje})
+    except Exception as error:
+        logger.exception(f"Error procesando mensaje: {error}")
+        return MENSAJE_SEGURO
 
 
 # Banco para la revisión manual que pide la primera pregunta del
@@ -245,6 +379,27 @@ BANCO_DE_MENSAJES = [
 if __name__ == "__main__":
     from contraste import *                               # noqa: F403
 
+    # basicConfig toca el registro global, así que se llama acá y no
+    # arriba. Al importar el archivo desde pytest no se configura nada,
+    # y el logger igual avisa, porque Python manda los mensajes de
+    # nivel ERROR a la salida de errores aunque nadie lo configure.
+    #
+    # Va en WARNING y no en INFO como el ejemplo de la lección, porque
+    # el nivel es global. En INFO, httpx y google_genai narran cada
+    # llamada y ensucian la salida hasta dejarla ilegible. Acá solo se
+    # registra con logger.error, que es más alto que WARNING, así que
+    # no se pierde ningún aviso nuestro.
+    #
+    # Lleva force porque basicConfig no hace nada, y sin avisar, si el
+    # registro ya tiene un manejador puesto. Las librerías de Google lo
+    # ponen al importarse, o sea antes de que se llegue acá.
+    logging.basicConfig(level=logging.WARNING, force=True)
+
+    # Y además hay que bajárselo a cada una por su nombre, porque
+    # fijan su propio nivel y entonces el de la raíz no las filtra.
+    for ruidosa in ("httpx", "google_genai"):
+        logging.getLogger(ruidosa).setLevel(logging.WARNING)
+
     load_dotenv()
 
     modelo = ChatGoogleGenerativeAI(
@@ -253,7 +408,11 @@ if __name__ == "__main__":
 
     paso_clasificacion = construir_paso_clasificacion(modelo)
 
-    cadena_consulta = plantilla_consulta | modelo | StrOutputParser()
+    # La ruta de consulta sale envuelta en su respaldo. Las otras tres
+    # van sueltas, cubiertas por el try/except de abajo.
+    cadena_consulta = construir_cadena_consulta_segura(
+        plantilla_consulta | modelo | StrOutputParser()
+    )
     cadena_clausula = plantilla_clausula | modelo | StrOutputParser()
     cadena_contrato = plantilla_contrato | modelo | StrOutputParser()
     cadena_ley = plantilla_ley | modelo | StrOutputParser()
@@ -298,6 +457,9 @@ if __name__ == "__main__":
     # confirmar que cada prompt produce algo realmente distinto. Se
     # toma la primera entrada de cada categoría del banco de arriba,
     # para no repetir textos.
+    #
+    # Todo pasa por procesar_mensaje_seguro, que es el punto de entrada
+    # del Bloque 20, y no por la cadena a pelo.
     titulobn("\n\n*** Una entrada por ruta, de punta a punta ***")
 
     vistas = set()
@@ -308,5 +470,7 @@ if __name__ == "__main__":
 
         titulofn(f"\n\n  ruta {categoria}")
         notabn(f"\n{mensaje}\n")
-        respuesta = cadena_con_enrutamiento.invoke({"mensaje": mensaje})
+        respuesta = procesar_mensaje_seguro(
+            cadena_con_enrutamiento, mensaje
+        )
         exitobn(respuesta)
