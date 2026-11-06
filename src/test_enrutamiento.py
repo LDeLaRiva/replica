@@ -1,14 +1,14 @@
 """Pruebas del enrutamiento condicional del Bloque 19.
 
 Son cinco, que es el piso que pide la lección. Una por cada condición
-explícita, que acá son tres, una para la ruta por defecto y una para la
+explícita, aqui son tres, una para la ruta por defecto y una para la
 normalización del texto antes de comparar.
 
 Ninguna llama al modelo. La clasificación se reemplaza por un mock, así
 cada prueba decide qué categoría entra y verifica a qué ruta salió, sin
 depender de cómo clasifique el modelo ese día.
 
-Fíjate que el valor falso se pone con .return_value sobre el mock y no
+El valor falso se pone con .return_value sobre el mock y no
 con .invoke.return_value. LangChain invoca un mock compuesto dentro de
 una chain como una función común, así que .invoke.return_value nunca se
 consulta y la prueba fallaría por un motivo que no es el que se cree.

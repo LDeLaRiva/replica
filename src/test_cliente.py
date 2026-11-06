@@ -46,7 +46,7 @@ from src.consumir_gemini import (                        # noqa: E402
 # Los tres argumentos que pide enviar_peticion. La dirección es la
 # real, la misma que arma armar_peticion, y se puede escribir entera
 # porque en este proyecto la credencial no viaja en la dirección sino
-# en la cabecera. Esa credencial sí es falsa, por razones obvias.
+# en la cabecera. Esa credencial sí es falsa.
 #
 # Ninguno de los tres llega a usarse, porque requests.post está
 # reemplazado en cada prueba y el corte ocurre ahí.

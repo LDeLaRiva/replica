@@ -1,6 +1,6 @@
 """Enrutamiento condicional de la miniaplicación de consultas laborales.
 
-La cadena del Bloque 18 hacía siempre los mismos tres pasos. Acá la
+La cadena del Bloque 18 hacía siempre los mismos tres pasos. aquí la
 entrada decide el camino. Un paso de clasificación mira qué llegó, y la
 bifurcación manda ese texto a la ruta que corresponde.
 
@@ -21,7 +21,7 @@ documento responderían sobre algo que no está.
 
 El Bloque 20 agrega dos redes de seguridad, de distinto alcance.
 
-    with_fallbacks   protege una ruta puntual, acá la de consulta
+    with_fallbacks   protege una ruta puntual, aquí la de consulta
     try/except       protege el flujo completo, pase lo que pase
 
 Las dos dejan registro con logger antes de responder. Un fallo que se
@@ -149,7 +149,7 @@ def avisar_y_responder(entrada):
     """Devuelve el texto de respaldo, y antes deja registro.
 
     El argumento llega porque with_fallbacks le pasa la misma entrada
-    que recibió la ruta que falló. Acá no se usa, el texto es fijo.
+    que recibió la ruta que falló. aquí no se usa, el texto es fijo.
 
     La línea del logger es el motivo de que esto sea una función y no
     una lambda que solo devuelve texto. with_fallbacks atrapa la
@@ -203,7 +203,7 @@ def construir_cadena_consulta_segura(cadena_consulta):
 
     Va un solo respaldo, y no el de dos niveles que muestra la lección,
     que antes del texto fijo reintenta con un modelo más simple. En una
-    mesa de soporte ese segundo intento es mejor que un texto fijo. Acá
+    mesa de soporte ese segundo intento es mejor que un texto fijo. aquí
     no. Esta ruta responde de memoria, sin documento delante, y un
     modelo más chico contestando sobre la ley inventa más. Una
     respuesta legal equivocada hace más daño que decir que no se pudo.
@@ -229,7 +229,7 @@ def construir_cadena_con_enrutamiento(
     pruebas alcanza con pasar la ruta que se quiere verificar.
 
     RunnablePassthrough.assign agrega la clave categoria al diccionario
-    de entrada sin botar las que ya traía. Eso importa porque cada ruta
+    de entrada sin descartar las que ya traía. Eso importa porque cada ruta
     usa el {mensaje} original en su propio prompt.
 
     RunnableBranch evalúa las condiciones de arriba hacia abajo y se
@@ -261,7 +261,7 @@ def procesar_mensaje_seguro(cadena, mensaje):
     una prueba pueda inyectar una cadena falsa. Es el mismo criterio de
     construir_cadena_con_enrutamiento.
 
-    El except es ancho a propósito. Acá el objetivo no es distinguir
+    El except es ancho a propósito. aquí el objetivo no es distinguir
     tipos de error como en el cliente del Módulo 2, es que ningún fallo
     deje a la persona sin ninguna respuesta.
 
@@ -379,20 +379,20 @@ BANCO_DE_MENSAJES = [
 if __name__ == "__main__":
     from contraste import *                               # noqa: F403
 
-    # basicConfig toca el registro global, así que se llama acá y no
+    # basicConfig toca el registro global, así que se llama aquí y no
     # arriba. Al importar el archivo desde pytest no se configura nada,
     # y el logger igual avisa, porque Python manda los mensajes de
     # nivel ERROR a la salida de errores aunque nadie lo configure.
     #
     # Va en WARNING y no en INFO como el ejemplo de la lección, porque
     # el nivel es global. En INFO, httpx y google_genai narran cada
-    # llamada y ensucian la salida hasta dejarla ilegible. Acá solo se
+    # llamada y ensucian la salida hasta dejarla ilegible. aquí solo se
     # registra con logger.error, que es más alto que WARNING, así que
-    # no se pierde ningún aviso nuestro.
+    # no se pierde ningun aviso del módulo.
     #
     # Lleva force porque basicConfig no hace nada, y sin avisar, si el
     # registro ya tiene un manejador puesto. Las librerías de Google lo
-    # ponen al importarse, o sea antes de que se llegue acá.
+    # ponen al importarse, o sea antes de que se llegue aquí.
     logging.basicConfig(level=logging.WARNING, force=True)
 
     # Y además hay que bajárselo a cada una por su nombre, porque
@@ -459,7 +459,7 @@ if __name__ == "__main__":
     # para no repetir textos.
     #
     # Todo pasa por procesar_mensaje_seguro, que es el punto de entrada
-    # del Bloque 20, y no por la cadena a pelo.
+    # del Bloque 20, y no por la cadena directamente.
     titulobn("\n\n*** Una entrada por ruta, de punta a punta ***")
 
     vistas = set()

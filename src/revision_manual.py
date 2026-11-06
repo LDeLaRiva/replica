@@ -46,7 +46,7 @@ CORTE = 5
 #
 # Ante la duda conviene "parcialmente" antes que forzar un "si". Y la
 # nota importa tanto como las tres respuestas, porque un "no" sin
-# explicación no sirve de nada al volver a leer esto en unas semanas.
+# explicación no permite reconstruir el criterio más adelante.
 #
 # Esta lista se llena a mano, leyendo cada caso que imprime este
 # script. Una entrada por caso revisado, con esta forma:
@@ -93,7 +93,7 @@ revision_manual = [
         "correccion_factual": "si",
         "completitud": "parcialmente",
         "contradiccion": "no",
-        "nota": ("el número está bien, pero se come que el permiso es "
+        "nota": ("el número está bien, pero omite que el permiso es "
                  "pagado y que es adicional al feriado anual. aquí la "
                  "cobertura de 0.400 sí refleja una respuesta "
                  "incompleta, la métrica acertó"),

@@ -1,8 +1,8 @@
 """Pruebas de orquestación del Bloque 20.
 
-Acá viven las pruebas de manejo de errores. Las de clasificación y
+aquí viven las pruebas de manejo de errores. Las de clasificación y
 enrutamiento del Bloque 19 están en test_enrutamiento.py, en esta misma
-carpeta, y no se repiten acá.
+carpeta, y no se repiten aquí.
 
 La suite completa del checklist son las dos juntas, ocho pruebas. Para
 correrla entera, desde la raíz del repositorio
@@ -26,7 +26,7 @@ El reparto contra la tabla del checklist del Bloque 20 queda así.
 Ninguna prueba llama al modelo. Las que tienen que fallar usan un
 RunnableLambda real que lanza la excepción, y no un MagicMock genérico,
 porque LangChain puede envolver un mock de una forma que hace que la
-aserción no pruebe lo que uno cree.
+aserción no pruebe lo que se cree.
 """
 
 import sys
