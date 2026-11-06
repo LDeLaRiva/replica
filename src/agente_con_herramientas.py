@@ -1,90 +1,54 @@
-"""Agente con herramientas propias del dominio laboral (Bloque 21).
+"""Agente con herramientas propias para consultas laborales (Bloque 21).
 
-A diferencia del enrutamiento condicional del Bloque 19, donde las
-rutas están programadas de antemano, el camino no está fijado. El
-modelo decide en cada consulta qué herramienta invocar, o si responde
-sin invocar ninguna.
+En el Bloque 19 las rutas estaban programadas de antemano. Ahora no hay
+camino fijo. El modelo decide en cada consulta qué herramienta usar, o
+si contesta sin usar ninguna.
 
-Las dos herramientas
-
-    buscar_articulo_del_codigo
-        indica en qué artículo está regulado un tema y entrega su
-        texto
-    calcular_indemnizacion_anos_servicio
-        calcula un monto aplicando reglas programadas
-
-Se eligieron de naturalezas distintas, una de búsqueda y otra de
-cálculo, para que no compitan por la misma consulta. La actividad
+Las dos son de naturalezas deliberadamente distintas, una busca y la
+otra calcula, para que no compitan por la misma pregunta. La actividad
 advierte que dos herramientas parecidas producen una elección
 inconsistente.
 
-El cálculo se resuelve en Python y no en el modelo, conforme a la
-declaración del proyecto del Módulo 1, que establece que los cálculos
-van "con reglas programadas en vez de dejarle la aritmética al
-modelo".
+    buscar_articulo_del_codigo
+        dice en qué artículo está regulado un tema y entrega su texto
+    calcular_indemnizacion_anos_servicio
+        calcula el monto del artículo 163 con reglas programadas
 
-Fuentes del contenido legal
+El cálculo se hace en Python y no en el modelo, como quedó establecido
+en la declaración del proyecto del Módulo 1.
 
-El texto de los artículos 66, 159 a 163 y 174 a 178 proviene del
-Código del Trabajo publicado por la Biblioteca del Congreso Nacional.
-Se incorpora literal, con los incisos separados por salto de línea y
-numerados entre corchetes. Un resumen aplana la estructura del
-artículo, y los artículos se remiten a sus propios incisos, de modo
-que sobre un texto plano esas remisiones quedan sin referente. Lo que
-aparece entre [nota: ...] es anotación de este proyecto y no texto
-legal.
-
-Las reglas de cálculo se contrastaron además con dos consultas de la
+El texto de los artículos 66, 160, 161, 163 y 177 viene del Código del
+Trabajo que publica la Biblioteca del Congreso Nacional. Va literal,
+con los incisos separados y numerados entre corchetes, y no resumido,
+porque un resumen aplana la estructura y los artículos se remiten a
+sus propios incisos. Sobre un texto plano esas remisiones quedan sin
+referente. Lo que aparece entre [nota: ...] es agregado de este
+proyecto y no texto legal, y resuelve justamente esas remisiones. Las
+reglas de cálculo se contrastaron además con dos consultas de la
 Dirección del Trabajo.
 
-Dónde está cada requisito de la actividad
+Los tres pasos que pide la actividad están en las dos herramientas con
+@tool, en el AgentExecutor del bloque __main__ con
+return_intermediate_steps=True, y en CASOS, que trae cuatro
+comprobaciones donde el mínimo son dos. El tercer caso es el que
+confirma que el agente no invoca herramienta cuando no corresponde, y
+el manejo de error dentro de la herramienta está en el try/except del
+cálculo y en el retorno sin excepción de la búsqueda.
 
-    dos herramientas con @tool y docstring de cuándo usarlas
-        buscar_articulo_del_codigo y
-        calcular_indemnizacion_anos_servicio
-    create_tool_calling_agent y AgentExecutor con
-    return_intermediate_steps=True
-        bloque __main__
-    pruebas manuales, una por herramienta, leyendo
-    intermediate_steps
-        CASOS, cuatro casos donde el mínimo exigido es dos
-    que no invoque herramienta cuando no corresponde
-        tercer caso de CASOS
-    manejo de error dentro de la herramienta
-        try/except de calcular_indemnizacion_anos_servicio, y
-        retorno sin excepción de buscar_articulo_del_codigo
+Hay cuatro cosas que la actividad no pide y que se agregan.
+texto_de_la_respuesta existe porque los modelos Gemini 3.x devuelven
+una lista de bloques donde la lección supone un string, y sin eso la
+salida queda ilegible. invocar_con_reintento y el try/except del bucle
+traen el patrón del Bloque 20 al bucle de casos, porque un 503 del
+proveedor interrumpía la verificación y dejaba los casos siguientes
+sin correr. El modelo se lee de AI_MODEL en vez de ir fijo. Y la
+elección de herramienta se confirma con un recuento en lugar del
+assert del ejemplo, porque un assert corta en el primer fallo y los
+casos siguientes quedarían sin verificar.
 
-Elementos incorporados además de los exigidos
-
-    texto_de_la_respuesta. La lección imprime resultado["output"]
-    suponiendo que es un string. Los modelos Gemini 3.x devuelven una
-    lista de bloques de contenido, que impresa sin procesar queda
-    ilegible.
-
-    invocar_con_reintento y el try/except del bucle de casos. Un
-    fallo transitorio del proveedor, como un 503 UNAVAILABLE,
-    interrumpe la verificación e impide ejecutar los casos
-    restantes. Aplica al bucle el patrón de manejo de error del
-    Bloque 20. El manejo de error dentro de las herramientas, que es
-    lo que exige esta actividad, es independiente y está cubierto.
-
-    AI_MODEL desde el entorno, en lugar del identificador fijo que
-    usa la lección.
-
-Diferencia de implementación respecto del ejemplo de la lección
-
-    El ejemplo confirma la elección de herramienta con assert. Este
-    módulo compara y acumula un recuento, porque un assert interrumpe
-    en el primer caso que falle y los casos siguientes quedarían sin
-    verificar. El requisito, confirmar la elección leyendo
-    intermediate_steps, se cumple del mismo modo.
-
-Observaciones de las corridas
-
-    El registro de ejecuciones, las conductas observadas del modelo y
-    las métricas se mantienen en el documento de límites
-    del proyecto, fechados y referidos a la ejecución en que se
-    observaron. ver docs/limites_bloque21.md
+El registro de las ejecuciones y de las conductas observadas del
+modelo está en docs/limites_bloque21.md, fechado y referido a cada
+ejecución.
 """
 
 import logging
