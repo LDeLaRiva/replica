@@ -74,6 +74,7 @@ redactado no había entregado nunca.
 - que en defunción fetal corre desde que se acredita la muerte
 - que el fuero, en contrato a plazo fijo u obra, se corta cuando
   termina el contrato
+
 El resumen omitía cuatro datos de un solo artículo.
 El del fuero fue el único que se descubrió, porque fue el único que
 produjo una afirmación verificable.
