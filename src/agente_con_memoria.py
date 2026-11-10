@@ -1,83 +1,108 @@
-"""Agente con herramienta estructurada y memoria (Bloque 22).
+"""Agente de consultas laborales con memoria y límites de autonomía.
 
-Toma el agente del Bloque 21 y le agrega las dos piezas de este
-bloque, argumentos estructurados con Pydantic en la herramienta de
-cálculo, y memoria entre interacciones.
+Es el agente vivo del proyecto. A agente_con_herramientas.py le
+agrega
+memoria entre interacciones, argumentos estructurados con Pydantic y
+una herramienta que no se puede deshacer, que por eso pide
+aprobación humana antes de ejecutarse. El anterior queda intacto con
+su propio commit.
 
-El del Bloque 21 queda intacto con su propio commit. Este archivo es
-el agente vivo del proyecto, el que va a seguir creciendo.
+El corpus legal y las funciones de supervisión no están en este
+archivo. Viven en soporte_corpus_legal.py y en
+soporte_supervision.py, siguiendo la retroalimentación del Gate 1,
+que pidió continuar desacoplando las funciones auxiliares hacia
+módulos de soporte para mantener conciso el punto de entrada.
 
-El corpus legal no está en este archivo. Vive en
-soporte_corpus_legal.py y se importa, así el texto verificado
-existe en un solo lugar.
+A quién atiende
 
-Las tres piezas que pide la lección van separadas y reconocibles.
-La herramienta con args_schema, el agente con su ejecutor, y la
-memoria.
+A las dos partes. Al área de recursos humanos de una empresa y a los
+trabajadores que quieran consultar por su cuenta. Las dos preguntan
+sobre lo mismo desde lados opuestos, así que una respuesta correcta
+para una puede no convenirle a la otra.
 
-Dónde está cada punto del checklist de cierre
+De ahí sale la única separación de acceso que el proyecto necesita,
+que el envío del aviso corresponde solo a recursos humanos. Esa
+separación no está implementada. No hay inicio de sesión, y hoy lo
+único que cumple esa función es que una persona tenga que aprobar el
+envío. Está documentado en docs/limites_autonomia_agente.md.
 
-    args_schema con descripciones por campo, en las herramientas de
-    más de un parámetro
-        ArgumentosIndemnizacion, sobre el cálculo
-    chat_history antes del mensaje humano y agent_scratchpad
-    después
-        prompt_agente
-    dos turnos en la misma sesión, el segundo usando el primero
-        primera prueba del bloque __main__
-    dos session_id distintos que no comparten historial
-        segunda prueba del bloque __main__
+Las tres herramientas
 
-Por qué la búsqueda no lleva args_schema
+    buscar_articulo_del_codigo_del_trabajo        riesgo bajo
+    calcular_indemnizacion_por_anos_de_servicio   riesgo bajo
+    enviar_aviso_de_termino_de_contrato           riesgo alto
 
-Recibe un solo parámetro. La lección dice que args_schema "vale la
-pena para una herramienta con varios argumentos, pero es un paso de
-más para una tan simple" que recibe uno solo, y que en ese caso el
-tipo anotado y un docstring claro alcanzan. El checklist pregunta
-por las herramientas de más de un parámetro, y esta no lo es.
+Las dos primeras leen y calculan, y lo peor que puede pasar si el
+agente las usa mal es una respuesta equivocada. La tercera notifica
+a una persona que su contrato termina, y eso no se retira. Por eso
+es la única que pide aprobación. Pedirla también en las otras dos la
+volvería costumbre, y quien aprueba por costumbre no lee lo que
+aprueba.
 
-El cálculo sí lo lleva, porque tiene cuatro.
+Por qué este archivo no reintenta las invocaciones
 
-Nombres explícitos en las dos herramientas
+agente_con_herramientas.py reintenta una vez, porque una caída
+momentánea del proveedor cortó una corrida completa. Este no, y la
+razón es la herramienta de riesgo alto.
 
-La lección recomienda nombrar la herramienta explícitamente cuando
-el nombre de la función no basta por sí solo. En este proyecto
-resuelve además un problema medido. En una corrida del Bloque 21 el
-modelo invocó buscar_articulo_del_consulta, que no existe,
-mezclando el nombre de la herramienta con el de su parámetro. El
-nombre nuevo termina en palabras que no se confunden con ningún
-argumento. El registro está en docs/limites_bloque21.md.
+Reintentar una invocación rehace el turno entero. Si la falla llega
+después de que el supervisor aprobó y el aviso ya salió, el
+reintento vuelve a pedir la aprobación y vuelve a enviar. Lo probé
+con un fallo puesto justo en ese punto y quedaron dos envíos
+registrados.
 
-Lo que se resolvió distinto de la lección
+Repetir una lectura no cuesta nada. Repetir algo que escribe, sí.
+Así que los reintentos quedan en la llamada al modelo, donde no
+vuelven a ejecutar ninguna herramienta, y una falla que no se
+resuelve esperando se propaga en vez de esconderse.
 
-El import de AgentExecutor va dentro de un try, para que el archivo
-corra tanto en la versión instalada como en una anterior. La lección
-usa solo la ruta nueva.
+Por qué la salida pasa por un normalizador
 
-El ejecutor lleva verbose y return_intermediate_steps. La lección
-los pone en su segundo bloque y los omite en su script final, así
-que se toma la primera de sus dos formas.
+La memoria guarda lo que el agente devuelve. Los modelos Gemini 3.x
+devuelven una lista de bloques de contenido donde se espera un
+texto, y sin un mensaje que guardar el historial queda vacío.
 
-El modelo se lee de AI_MODEL en vez de ir escrito fijo, y el prompt
-del sistema conserva las reglas del Bloque 21 sobre cifras y plazos.
+Lo peligroso es que no avisa. El agente responde con normalidad y la
+memoria no guarda nada. Por eso el normalizador va puesto de entrada
+y no después de ver si falla, y por eso cada turno imprime cuántos
+mensajes tiene el historial.
 
-Sobre el normalizador
+Por qué los nombres de las herramientas van escritos
 
-RunnableWithMessageHistory guarda en el historial lo que devuelve el
-agente. Los modelos Gemini 3.x devuelven una lista de bloques de
-contenido donde la lección supone un texto, así que la salida se
-convierte en un mensaje antes de que la memoria la reciba.
+En agente_con_herramientas.py la búsqueda se llamaba
+buscar_articulo_del_codigo y su parámetro se llamaba consulta. En
+una corrida el modelo la invocó como buscar_articulo_del_consulta,
+cambiando la última palabra del nombre por el nombre del parámetro.
+Esa herramienta no existe, así que la llamada falló.
 
-Va de entrada y no después de ver si falla, porque el modo de falla
-es silencioso. La lección advierte que el agente responde con
-normalidad y el historial queda vacío sin avisar. Por eso cada turno
-imprime además cuántos mensajes tiene el historial, que es la
-comprobación que la lección indica.
+El nombre terminaba en del_codigo, que se lee como un hueco
+esperando que le pongan algo, y el modelo le puso lo único que tenía
+a mano. El nombre de ahora termina en del_trabajo, que completa el
+nombre del Código del Trabajo y no deja una palabra final suelta.
+El registro está en docs/limites_bloque21.md.
+
+Por qué solo dos llevan args_schema
+
+La búsqueda recibe un parámetro y le alcanza con el tipo anotado y
+su docstring. El cálculo y el envío reciben cuatro cada uno, y con
+cuatro el modelo necesita saber qué representa cada campo para armar
+bien la llamada.
+
+Dónde queda el registro de lo que hizo
+
+Cada turno se escribe en trazas_agente.jsonl, en esta misma
+carpeta. Se escribe dentro de responder y no en cada prueba, porque
+es el único lugar por el que pasan todas las interacciones. Una
+traza que haya que acordarse de escribir es una traza que alguna vez
+falta.
+
+Cada línea guarda qué se preguntó, qué herramientas se usaron y con
+qué argumentos, si un humano autorizó el envío, y qué se respondió.
 """
 
 import logging
 import os
-import time
+from typing import Any
 
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
@@ -108,45 +133,15 @@ except ImportError:
     )
 
 from soporte_corpus_legal import buscar_articulos
+from soporte_supervision import (
+    RUTA_TRAZAS,
+    esperar_aprobacion,
+    registrar_aprobacion,
+    registrar_traza,
+    registro_aprobaciones,
+)
 
-logger = logging.getLogger(__name__)
-
-# Espera previa al único reintento. Veinte segundos, porque un 503
-# UNAVAILABLE responde a una saturación momentánea del proveedor.
-ESPERA_REINTENTO = 20
-
-
-def invocar_con_reintento(agente, entrada, config,
-                          espera=ESPERA_REINTENTO):
-    """Invoca el agente y reintenta una vez si la primera falla.
-
-    Un 503 UNAVAILABLE del proveedor indica saturación momentánea del
-    servicio, no agotamiento de cuota ni error en la solicitud. Sin
-    reintento, un fallo así interrumpe la prueba completa, que es lo
-    que ocurrió en una corrida del Bloque 21.
-
-    Si el reintento también falla, la excepción se propaga en lugar
-    de saltar al turno siguiente. Es la diferencia con la versión del
-    Bloque 21, donde los casos eran independientes. En esta prueba
-    cada turno
-    depende del anterior, de modo que seguir sin el primero no
-    probaría nada.
-
-    El manejo no oculta el error. logger.exception registra el
-    traceback completo antes de reintentar.
-    """
-    try:
-        return agente.invoke({"entrada": entrada}, config)
-    except Exception:
-        logger.exception(
-            "Falló la invocación del agente, se reintenta una vez "
-            "en %s segundos", espera
-        )
-        time.sleep(espera)
-        return agente.invoke({"entrada": entrada}, config)
-
-
-def texto_de_la_respuesta(salida):
+def texto_de_la_respuesta(salida: Any) -> str:
     """Deja la respuesta del agente como texto plano.
 
     Maneja las tres formas en que puede llegar. Un objeto de mensaje,
@@ -154,10 +149,9 @@ def texto_de_la_respuesta(salida):
     devuelven los modelos Gemini 3.x y que impresa sin procesar queda
     ilegible. Y un texto, que se devuelve tal cual.
 
-    La versión del Bloque 21 no contemplaba el objeto de mensaje,
-    porque ahí nada lo producía. En este archivo sí, porque el
-    normalizador envuelve la salida antes de guardarla en el
-    historial.
+    La versión anterior de esta función no contemplaba el objeto de
+    mensaje, porque nada lo producía. Ahora sí, porque el normalizador
+    envuelve la salida antes de guardarla en el historial.
     """
     if hasattr(salida, "content"):
         salida = salida.content
@@ -175,7 +169,7 @@ def texto_de_la_respuesta(salida):
     return str(salida)
 
 
-def normalizar_para_historial(resultado):
+def normalizar_para_historial(resultado: dict) -> dict:
     """Convierte la salida del agente en un mensaje, para el historial.
 
     RunnableWithMessageHistory guarda lo que el agente devuelve. Con
@@ -191,6 +185,17 @@ def normalizar_para_historial(resultado):
             content=texto_de_la_respuesta(resultado["output"])
         ),
     }
+
+
+def en_lista(partes: list) -> str:
+    """Une varios textos con comas y una y al final.
+
+    Con tres o más, una y repetida entre todos se lee mal. Esto deja
+    "el nombre, la causal y el monto" en vez de encadenarlos.
+    """
+    if len(partes) == 1:
+        return partes[0]
+    return ", ".join(partes[:-1]) + " y " + partes[-1]
 
 
 # *** Las herramientas ***
@@ -217,22 +222,30 @@ class ArgumentosIndemnizacion(BaseModel):
     representa cada uno para armar bien la llamada.
     """
 
+    # Los obligatorios llevan valor por defecto por el mismo motivo
+    # que en ArgumentosAvisoTermino. Un campo que el modelo olvide
+    # haría que Pydantic rechace la llamada antes de entrar a la
+    # función, y ese rechazo corta la corrida en vez de dejar que la
+    # herramienta diga qué falta.
     anos_completos: int = Field(
+        default=0,
         description=(
             "Años completos que la persona trabajó para ese "
             "empleador, sin contar los meses sueltos."
         ),
     )
     meses_adicionales: int = Field(
+        default=0,
         description=(
             "Meses sueltos además de esos años completos. Para "
             "cinco años y ocho meses, va 8."
         ),
     )
     sueldo_mensual: float = Field(
+        default=0.0,
         description=(
-            "Última remuneración mensual bruta, en pesos chilenos, "
-            "sin separadores de miles."
+            "Obligatorio. Última remuneración mensual bruta, en "
+            "pesos chilenos y sin separadores de miles."
         ),
     )
     horas_semanales: int = Field(
@@ -266,22 +279,39 @@ def calcular_indemnizacion(
     pregunta.
     """
 
-    try:
-        # Se normaliza por si llegan doce meses o más como meses
-        # adicionales, que sería la misma antigüedad mal repartida.
-        total_meses = int(anos_completos) * 12 + int(meses_adicionales)
-        sueldo = float(sueldo_mensual)
-        horas = int(horas_semanales)
-    except (TypeError, ValueError):
-        return (
-            "No pude calcular la indemnización porque la antigüedad o "
-            "el sueldo no llegaron como números."
-        )
+    # Los tipos ya vienen validados. args_schema convierte y rechaza
+    # antes de entrar aquí, de modo que un sueldo que llegue como
+    # texto no numérico no alcanza esta línea. Lo que sigue revisa
+    # solo lo que el schema no puede expresar, que son los valores
+    # negativos y el requisito de antigüedad del artículo 163.
+    #
+    # Se normaliza por si llegan doce meses o más como meses
+    # adicionales, que sería la misma antigüedad mal repartida.
+    total_meses = anos_completos * 12 + meses_adicionales
+    sueldo = sueldo_mensual
+    horas = horas_semanales
 
     if total_meses < 0 or sueldo < 0:
         return (
             "No pude calcular la indemnización porque la antigüedad o "
             "el sueldo llegaron en negativo."
+        )
+
+    # Un dato que no llegó queda en cero, y eso no es lo mismo que un
+    # sueldo de cero. Se nombra cuál falta, porque si no la respuesta
+    # diría que no corresponde indemnización cuando lo que pasó es
+    # que faltó el dato.
+    faltantes = []
+    if sueldo == 0:
+        faltantes.append("el sueldo mensual")
+    if total_meses == 0:
+        faltantes.append("la antigüedad")
+
+    if faltantes:
+        return (
+            "No pude calcular la indemnización porque falta "
+            + en_lista(faltantes)
+            + ". Vuelve a llamar la herramienta con ese dato."
         )
 
     # Primer requisito del artículo 163, contrato vigente un año o más.
@@ -319,12 +349,21 @@ def calcular_indemnizacion(
     # referente.
     supuestos = (
         " Este monto supone que el término fue por el artículo 161, "
-        "necesidades de la empresa o desahucio, que es el único caso "
-        "en que esta indemnización procede. No se aplica a contratos "
-        "por obra o faena, a trabajadores de casa particular, a la "
-        "liquidación concursal, ni cuando lo pactado en el contrato "
-        "es superior a la indemnización legal, porque en ese caso se "
-        "paga lo pactado."
+        "necesidades de la empresa o desahucio. Si fue por otra "
+        "causal y un tribunal la declara injustificada, indebida o "
+        "improcedente, el artículo 168 ordena pagar esta misma "
+        "indemnización con un recargo de entre el treinta y el "
+        "ochenta por ciento. No se aplica a los contratos por obra o "
+        "faena, que tienen la suya propia en el inciso tercero del "
+        "artículo 163, ni a los trabajadores de casa particular, ni "
+        "cuando lo pactado en el contrato es superior a la "
+        "indemnización legal, porque en ese caso se paga lo pactado."
+        " Hay además un tope que este cálculo no aplica. El inciso "
+        "tercero del artículo 172 limita a noventa unidades de "
+        "fomento la remuneración con que se calcula, y el valor de "
+        "la UF no está disponible en esta consulta, de modo que si "
+        "el sueldo supera ese tope el monto real es menor que el "
+        "indicado."
     )
 
     # Jornada parcial. El artículo 40 bis la define como treinta horas
@@ -395,9 +434,195 @@ def calcular_indemnizacion(
     )
 
 
+class ArgumentosAvisoTermino(BaseModel):
+    """Los datos que el artículo 162 exige que el aviso contenga.
+
+    Los cuatro campos no son una elección de diseño. El inciso
+    primero del 162 exige expresar la causal invocada cuando el
+    término es por los artículos 159 o 160. El inciso cuarto exige
+    el plazo de treinta días de anticipación y el monto total a
+    pagar, cuando la causal es la del inciso primero del artículo
+    161. Y el aviso se dirige siempre a una persona determinada.
+    """
+
+    # Los tres primeros son obligatorios y aun así llevan un valor
+    # por defecto. No es un descuido.
+    #
+    # Sin el valor por defecto, un campo que el modelo olvide hace
+    # que Pydantic rechace la llamada antes de entrar a la función, y
+    # ese rechazo sube como excepción y corta la corrida. Pasó en una
+    # corrida real, el modelo omitió el nombre del trabajador y el
+    # programa se cayó antes de llegar a pedir la aprobación.
+    #
+    # Con el valor por defecto la llamada entra, la función revisa
+    # qué falta y devuelve un mensaje diciéndolo. Ese mensaje vuelve
+    # al modelo como observación, y el modelo puede llamar de nuevo
+    # con el dato que le faltaba. La descripción de cada campo dice
+    # que es obligatorio, y quien lo exige de verdad es la función.
+    nombre_trabajador: str = Field(
+        default="",
+        description=(
+            "Obligatorio. Nombre de la persona a la que se dirige el "
+            "aviso, tal como aparece en su contrato."
+        ),
+    )
+    causal: str = Field(
+        default="",
+        description=(
+            "Obligatorio. Causal de término invocada, por ejemplo "
+            "necesidades de la empresa. El artículo 162 exige "
+            "nombrarla en el aviso."
+        ),
+    )
+    monto_indemnizacion: float = Field(
+        default=0.0,
+        description=(
+            "Obligatorio. El monto de la indemnización por años de "
+            "servicio, en pesos chilenos y sin separadores de miles. "
+            "Pasa el número que devolvió la herramienta de cálculo, "
+            "tal cual y sin sumarle nada. La sustitutiva del aviso "
+            "previo no va incluida, el aviso la nombra aparte."
+        ),
+    )
+    dias_de_aviso: int = Field(
+        default=0,
+        description=(
+            "Días de anticipación con que se da el aviso. Si son "
+            "menos de treinta, corresponde además la indemnización "
+            "sustitutiva del aviso previo. Déjalo en cero si la "
+            "persona no lo menciona."
+        ),
+    )
+
+
+@tool(
+    "enviar_aviso_de_termino_de_contrato",
+    args_schema=ArgumentosAvisoTermino,
+)
+def enviar_aviso_de_termino(
+    nombre_trabajador: str,
+    causal: str,
+    monto_indemnizacion: float,
+    dias_de_aviso: int = 0,
+) -> str:
+    """Envía al trabajador el aviso de término de contrato que exige
+    el artículo 162 del Código del Trabajo chileno.
+
+    Usar solo cuando el área de recursos humanos pide expresamente
+    que se notifique un término de contrato y entrega el nombre, la
+    causal y el monto. No usar para responder consultas, ni para
+    explicar cómo se hace, ni a petición del propio trabajador.
+
+    Es una acción irreversible y requiere aprobación humana antes de
+    ejecutarse. Una vez enviado, el trabajador queda notificado. Si
+    la causal es la del inciso primero del artículo 161, el artículo
+    169 considera ese aviso una oferta irrevocable de pago. Y el
+    inciso noveno del artículo 162 establece que los errores u
+    omisiones no invalidan la terminación del contrato, salvo los que
+    tengan relación con el pago íntegro de las cotizaciones
+    previsionales.
+
+    El envío está simulado. Esta versión del proyecto no se conecta
+    a ningún servicio de correo ni a la Inspección del Trabajo.
+    """
+
+    # args_schema ya convirtió los tipos. Lo que sigue revisa que los
+    # datos obligatorios hayan llegado y que tengan sentido, y nombra
+    # cuál falta para que el modelo pueda corregir y llamar de nuevo.
+    monto = monto_indemnizacion
+    dias = dias_de_aviso
+
+    if monto < 0 or dias < 0:
+        return (
+            "No preparé el aviso y no se envió nada, porque el monto "
+            "o los días de anticipación llegaron en negativo."
+        )
+
+    faltantes = []
+    if not nombre_trabajador.strip():
+        faltantes.append("el nombre del trabajador")
+    if not causal.strip():
+        faltantes.append("la causal invocada")
+    if monto == 0:
+        faltantes.append("el monto de la indemnización")
+
+    if faltantes:
+        return (
+            "No preparé el aviso y no se envió nada, porque falta "
+            + en_lista(faltantes)
+            + ". El artículo 162 exige los tres datos en el aviso. "
+            "Vuelve a llamar la herramienta con lo que falta."
+        )
+
+    # Artículo 162 inciso cuarto. Con menos de treinta días de
+    # anticipación no se omite el aviso, se paga además la
+    # sustitutiva. Se dice en la pregunta porque cambia lo que la
+    # empresa va a desembolsar.
+    if dias >= 30:
+        nota_plazo = f"con {dias} días de anticipación"
+    else:
+        nota_plazo = (
+            "sin los treinta días de anticipación, de modo que "
+            "corresponde pagar además la indemnización sustitutiva "
+            "del aviso previo, equivalente a la última remuneración "
+            "mensual devengada y que no está incluida en el monto "
+            "indicado"
+        )
+
+    # El aviso dice qué se va a hacer y por qué no se puede deshacer,
+    # con los dos artículos que lo respaldan. Una pregunta que solo
+    # dijera si aprobar o no se contesta sin leerla.
+    mensaje = (
+        f"\nEl agente quiere enviar un aviso de término de contrato "
+        f"a {nombre_trabajador}, por {causal}, {nota_plazo}, con una "
+        f"indemnización de ${monto:,.0f}.\n"
+        f"Una vez enviado, el trabajador queda notificado. Si la "
+        f"causal es la del inciso primero del artículo 161, el "
+        f"artículo 169 considera este aviso una oferta irrevocable "
+        f"de pago.\n"
+        f"El inciso noveno del artículo 162 establece que los "
+        f"errores u omisiones no invalidan la terminación, salvo los "
+        f"que tengan relación con el pago íntegro de las "
+        f"cotizaciones previsionales, y que esos errores igual se "
+        f"sancionan con multa administrativa.\n"
+        f"¿Aprobar? (s/n): "
+    )
+
+    aprobado = esperar_aprobacion(mensaje)
+
+    # Se registra la decisión antes de actuar y cualquiera sea el
+    # resultado. Sin el rechazo no habría cómo responder después por
+    # qué un aviso no se envió.
+    registrar_aprobacion(
+        herramienta="enviar_aviso_de_termino_de_contrato",
+        argumentos={
+            "nombre_trabajador": nombre_trabajador,
+            "causal": causal,
+            "monto_indemnizacion": monto,
+            "dias_de_aviso": dias,
+        },
+        aprobado=aprobado,
+    )
+
+    if not aprobado:
+        return (
+            "El aviso de término no se envió, porque el supervisor "
+            "humano no lo aprobó. El contrato sigue vigente y no se "
+            "notificó nada al trabajador."
+        )
+
+    return (
+        f"Se envió a {nombre_trabajador} el aviso de término de "
+        f"contrato por {causal}, {nota_plazo}, indicando una "
+        f"indemnización de ${monto:,.0f}. La notificación ya no se "
+        "puede retirar."
+    )
+
+
 herramientas = [
     buscar_articulo,
     calcular_indemnizacion,
+    enviar_aviso_de_termino,
 ]
 
 
@@ -442,14 +667,14 @@ prompt_agente = ChatPromptTemplate.from_messages([
 historiales = {}
 
 
-def obtener_historial(session_id):
+def obtener_historial(session_id: str) -> InMemoryChatMessageHistory:
     """Devuelve el historial de esa sesión, y lo crea si no existe."""
     if session_id not in historiales:
         historiales[session_id] = InMemoryChatMessageHistory()
     return historiales[session_id]
 
 
-def cerrar_sesion(session_id):
+def cerrar_sesion(session_id: str) -> None:
     """Borra el historial de una sesión terminada.
 
     Sin esto, un servicio de larga duración acumula un historial por
@@ -462,15 +687,17 @@ def cerrar_sesion(session_id):
     historiales.pop(session_id, None)
 
 
-def construir_agente_con_memoria(ejecutor):
+def construir_agente_con_memoria(
+    ejecutor: Any,
+) -> RunnableWithMessageHistory:
     """Envuelve el ejecutor con el historial de conversación.
 
     Entre el ejecutor y la memoria va el normalizador, para que lo
     que se guarde sea un mensaje y no una lista de bloques.
 
     output_messages_key le dice a la memoria cuál de las claves del
-    resultado contiene la respuesta. La lección no lo pasa, pero
-    en este caso hay un paso intermedio y conviene ser explícita.
+    resultado contiene la respuesta. Con un paso intermedio en medio
+    conviene decirlo y no dejarlo a que lo adivine.
     """
     normalizado = ejecutor | RunnableLambda(normalizar_para_historial)
     return RunnableWithMessageHistory(
@@ -482,24 +709,37 @@ def construir_agente_con_memoria(ejecutor):
     )
 
 
-def responder(agente, entrada, session_id):
+def responder(agente: Any, entrada: str, session_id: str) -> tuple:
     """Un turno de conversación.
 
     Devuelve la respuesta en texto, las herramientas que el agente
     usó, y cuántos mensajes quedaron en el historial de esa sesión.
 
-    Ese último número es la comprobación que indica la lección. Si no
+    Ese último número es la forma de comprobar la memoria. Si no
     crece después de cada turno, el historial no se está guardando, y
     ese fallo no se manifiesta de ninguna otra forma.
+
+    Cada turno queda además escrito en el archivo de trazas. Va aquí
+    y no en cada prueba del bloque de abajo, porque este es el único
+    lugar por el que pasan todas las interacciones. Una traza que
+    hubiera que acordarse de escribir es una traza que alguna vez
+    falta.
+
+    La invocación es directa y no pasa por ningún reintento. La
+    cabecera explica por qué.
     """
     config = {"configurable": {"session_id": session_id}}
-    resultado = invocar_con_reintento(agente, entrada, config)
+    resultado = agente.invoke({"entrada": entrada}, config)
+
+    registrar_traza(session_id, entrada, resultado)
+
+    texto = texto_de_la_respuesta(resultado["output"])
     usadas = tuple(dict.fromkeys(
         accion.tool
         for accion, _ in resultado.get("intermediate_steps", [])
     ))
     return (
-        texto_de_la_respuesta(resultado["output"]),
+        texto,
         usadas,
         len(obtener_historial(session_id).messages),
     )
@@ -522,6 +762,10 @@ if __name__ == "__main__":
         modelo, herramientas, prompt_agente
     )
 
+    # return_intermediate_steps tiene que ir en True. Sin eso el
+    # resultado no trae los pasos que el agente dio, y la traza
+    # quedaría con la pregunta y la respuesta pero sin ninguna de las
+    # herramientas que se usaron en medio.
     ejecutor_agente = AgentExecutor(
         agent=agente,
         tools=herramientas,
@@ -531,7 +775,7 @@ if __name__ == "__main__":
 
     agente_con_memoria = construir_agente_con_memoria(ejecutor_agente)
 
-    def mostrar_turno(entrada, sesion):
+    def mostrar_turno(entrada: str, sesion: str) -> tuple:
         """Corre un turno, lo imprime y devuelve su respuesta y el
         largo del historial."""
         titulofn(f"\n\n  sesión {sesion}")
@@ -643,8 +887,51 @@ if __name__ == "__main__":
             "de ninguna otra sesión"
         )
 
-    # El historial se limpia al terminar, como indica la lección.
-    for sesion in ("consulta_001", "consulta_002", "consulta_003"):
+    # *** Tercera prueba, los dos niveles de riesgo ***
+    #
+    # Las dos pruebas de arriba son de la memoria y no tocan la
+    # herramienta nueva. Esta prueba los dos niveles de riesgo, con
+    # una entrada que dispara una herramienta de cada uno.
+    #
+    # El primer turno es del lado del trabajador y solo consulta.
+    # El segundo es del lado de recursos humanos y encadena dos
+    # herramientas, el cálculo de riesgo bajo alimentando al envío
+    # de riesgo alto, porque el artículo 162 exige que el aviso
+    # indique el monto a pagar.
+    titulobn("\n\n*** Tercera prueba, los dos niveles de riesgo ***")
+    avisofn(
+        "\n  El segundo turno va a pedir una aprobación por consola. "
+        "Responde la\n  letra s y Enter para aprobar el envío, o la "
+        "letra n para rechazarlo."
+    )
+
+    mostrar_turno(
+        "¿En qué artículo está regulado el aviso de término de "
+        "contrato y con cuánta anticipación hay que darlo?",
+        "consulta_004",
+    )
+    mostrar_turno(
+        "Soy del área de recursos humanos. Hay que dar aviso de "
+        "término de contrato a Juan Pérez por necesidades de la "
+        "empresa. Lleva 5 años y 8 meses y su último sueldo fue de "
+        "850000 pesos. No alcanzamos a avisar con treinta días.",
+        "rrhh_001",
+    )
+
+    notabn(f"\n  decisiones de aprobación registradas   "
+           f"{len(registro_aprobaciones)}")
+    for decision in registro_aprobaciones:
+        notabn(f"    {decision['herramienta']}")
+        notabn(f"      aprobado  {decision['aprobado']}")
+        notabn(f"      momento   {decision['momento']}")
+
+    notabn(f"\n  las trazas quedaron en {RUTA_TRAZAS.name}, "
+           "en esta misma carpeta")
+
+    # El historial se limpia al terminar. Nada lo vacía solo, y un
+    # proceso largo acumularía uno por cada sesión que haya visto.
+    for sesion in ("consulta_001", "consulta_002", "consulta_003",
+                   "consulta_004", "rrhh_001"):
         cerrar_sesion(sesion)
     exitobn(
         f"\n  sesiones cerradas, quedan {len(historiales)} "

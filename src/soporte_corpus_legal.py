@@ -20,16 +20,16 @@ lo que respondió la aplicación contra lo que dice la ley, y una
 respuesta construida de memoria no se puede contrastar con nada.
 
 Este corpus tiene dos límites conocidos. Si la ley cambia, el
-archivo queda viejo hasta que alguien lo actualice. Y son ocho
+archivo queda viejo hasta que alguien lo actualice. Y son nueve
 artículos, de modo que para cualquier otro tema la búsqueda contesta
 que no lo encontró.
 
 Ese segundo límite se puede medir. Los artículos cargados remiten a
-ocho artículos del Código que no están. Entre ellos el 159, con
-causales de término que el 162 y el 163 invocan por su número, el
-168, al que el 161 remite la impugnación del despido, y el 172, al
-que el 163 remite el cálculo de la indemnización. Una respuesta
-puede quedar apuntando a un texto que la búsqueda no entrega.
+ocho artículos del Código que no están. El más citado es el 159, seis
+veces, con causales de término que el 162, el 163 y el 168 invocan
+por su número. Y está el 172, al que el 163 remite el cálculo de la
+indemnización. Una respuesta puede quedar apuntando a un texto que
+la búsqueda no entrega.
 
 Una versión de producción consultaría la fuente en vivo o indexaría
 el Código completo para buscar por significado y no por palabra
@@ -56,7 +56,7 @@ Fuente del texto
 
 El Código del Trabajo publicado por la Biblioteca del Congreso
 Nacional. Los artículos cargados son el 40 bis, el 40 bis D, el 66,
-el 160, el 161, el 162, el 163 y el inciso primero del 177.
+el 160, el 161, el 162, el 163, el 168 y el inciso primero del 177.
 """
 
 import unicodedata
@@ -110,19 +110,20 @@ def sin_tildes(texto):
 # no se lea como si fuera el artículo completo.
 #
 # Lo que va entre [nota: ...] es anotación de este proyecto y no
-# texto legal. Son cinco y resuelven las remisiones que un artículo
-# hace a sus propios incisos, una en el 66, una en el 161 y tres en
-# el 163. Se insertan dentro de la oración y no como nota al margen,
-# para que al citar la oración la aclaración vaya incorporada y no
-# pueda quedar atrás, y para que la expresión "el trabajador del
-# inciso primero" no llegue a destino sin referente.
+# texto legal. Son seis y resuelven las remisiones que un artículo
+# hace a sus propios incisos, una en el 66, una en el 161, tres en
+# el 163 y una en el 168. Se insertan dentro de la oración y no como
+# nota al margen, para que al citar la oración la aclaración vaya
+# incorporada y no pueda quedar atrás, y para que la expresión "el
+# trabajador del inciso primero" no llegue a destino sin referente.
 #
-# Hay dos notas más que no resuelven una remisión interna. La del 40
-# bis D fija su alcance, porque el artículo habla de la
+# Hay tres notas más que no resuelven una remisión interna. La del
+# 40 bis D fija su alcance, porque el artículo habla de la
 # indemnización que pudiere corresponderle al trabajador sin decir a
 # qué trabajador, y eso lo establece el párrafo que abre el 40 bis.
-# La del 162 avisa que los números del 159 a los que remite su
-# inciso primero no están en este corpus.
+# Las del 162 y del 168 avisan de un texto al que su propio artículo
+# remite y que este corpus no tiene, los números del 159 en un caso,
+# y el artículo 153 con el Título IV del Libro II en el otro.
 #
 # No se tocaron las referencias que no son ambiguas. "Este artículo"
 # y "el presente artículo" se explican solos, y las que dicen "el
@@ -426,6 +427,61 @@ ARTICULOS = (
         "rentabilidad que se haya obtenido de ellos."
     ),
     (
+        (
+            "injustificad", "indebid", "improcedent", "reclam",
+            "demand", "recargo",
+        ),
+        "[1] Art. 168. El trabajador cuyo contrato termine por "
+        "aplicación de una o más de las causales establecidas en los "
+        "artículos 159, 160 y 161, y que considere que dicha aplicación "
+        "es injustificada, indebida o improcedente, o que no se haya "
+        "invocado ninguna causal legal, podrá recurrir al juzgado "
+        "competente, dentro del plazo de sesenta días hábiles, contado "
+        "desde la separación, a fin de que éste así lo declare. En este "
+        "caso, el juez ordenará el pago de la indemnización a que se "
+        "refiere el inciso cuarto del artículo 162 y la de los incisos "
+        "primero o segundo del artículo 163, según correspondiere, "
+        "aumentada esta última de acuerdo a las siguientes reglas:\n"
+        "a) En un treinta por ciento, si se hubiere dado término por "
+        "aplicación improcedente del artículo 161;\n"
+        "b) En un cincuenta por ciento, si se hubiere dado término por "
+        "aplicación injustificada de las causales del artículo 159 o no "
+        "se hubiere invocado ninguna causa legal para dicho término;\n"
+        "c) En un ochenta por ciento, si se hubiere dado término por "
+        "aplicación indebida de las causales del artículo 160.\n"
+        "[2] Si el empleador hubiese invocado las causales señaladas en "
+        "los números 1, 5 y 6 del artículo 160 y el despido fuere "
+        "además declarado carente de motivo plausible por el tribunal, "
+        "la indemnización establecida en los incisos primero o segundo "
+        "del artículo 163, según correspondiere, se incrementará en un "
+        "cien por ciento.\n"
+        "[3] En el caso de las denuncias de acoso sexual, el empleador "
+        "que haya cumplido con su obligación en los términos que "
+        "señalan el artículo 153, inciso segundo, y el Título IV del "
+        "Libro II, [nota: el artículo 153 y el Título IV del Libro II "
+        "fijan esa obligación del empleador y este corpus no los "
+        "incluye] no estará afecto al recargo de la indemnización a que "
+        "hubiere lugar, en caso de que el despido sea declarado "
+        "injusto, indebido o improcedente.\n"
+        "[4] Si el juez estableciere que la aplicación de una o más de "
+        "las causales de terminación del contrato establecidas en los "
+        "artículos 159 y 160 no ha sido acreditada, de conformidad a lo "
+        "dispuesto en este artículo, se entenderá que el término del "
+        "contrato se ha producido por alguna de las causales señaladas "
+        "en el artículo 161, en la fecha en que se invocó la causal, y "
+        "habrá derecho a los incrementos legales que corresponda en "
+        "conformidad a lo dispuesto en los incisos anteriores.\n"
+        "[5] El plazo contemplado en el inciso primero [nota: es el "
+        "inciso 1, el plazo de sesenta días hábiles contado desde la "
+        "separación] se suspenderá cuando, dentro de éste, el "
+        "trabajador interponga un reclamo por cualquiera de las "
+        "causales indicadas, ante la Inspección del Trabajo respectiva. "
+        "Dicho plazo seguirá corriendo una vez concluido este trámite "
+        "ante dicha Inspección. No obstante lo anterior, en ningún caso "
+        "podrá recurrirse al tribunal transcurridos noventa días "
+        "hábiles desde la separación del trabajador."
+    ),
+    (
         ("finiquito",),
         "[1] Art. 177. El finiquito, la renuncia y el mutuo acuerdo "
         "deberán constar por escrito. El instrumento respectivo que "
@@ -483,3 +539,4 @@ def buscar_articulos(consulta):
         "corchetes marcan los incisos del artículo.\n\n"
         + "\n\n".join(encontrados)
     )
+
