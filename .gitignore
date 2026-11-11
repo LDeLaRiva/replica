@@ -159,6 +159,9 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+.venv/
+.env/
+vectorstore/
 
 #modulos personales o de pruebas
 src/peticiones.py
@@ -168,7 +171,6 @@ src/variables_entorno.py
 src/prueba.py
 src/salida.py
 src/monolitico.py
-src/peticiones.py
 src/ensayo_rate_limit.py
 evidencias/
 prueba_offline.py
@@ -233,3 +235,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Local DB
+/chroma_db/
