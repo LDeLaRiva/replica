@@ -1,4 +1,4 @@
-"""Supervisión humana y registro de las decisiones del agente.
+"""Supervisión humana y registro de las decisiones del agente (Bloque 23).
 
 Tres funciones para dos cosas distintas. Pedir una aprobación antes
 de ejecutar algo que no se puede deshacer, y dejar por escrito qué

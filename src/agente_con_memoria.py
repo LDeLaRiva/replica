@@ -1,4 +1,4 @@
-"""Agente de consultas laborales con memoria y límites de autonomía.
+"""Agente de consultas laborales, memoria y límites (Bloques 22 y 23).
 
 Es el agente vivo del proyecto. A agente_con_herramientas.py le
 agrega
