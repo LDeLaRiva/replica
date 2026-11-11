@@ -1,4 +1,4 @@
-# Límites de autonomía: agente de consultas laborales
+# Límites de autonomía, agente de consultas laborales
 
 El agente vive en `src/agente_con_memoria.py` y tiene tres
 herramientas. Dos leen y calculan. La tercera notifica a una persona
@@ -123,8 +123,35 @@ No se ha observado. En las dos corridas medidas, las dos veces que
 se invocó la herramienta quedó su decisión registrada, una aprobada
 y una rechazada.
 
-Se comprueba con `Select-String -Path src\trazas_agente.jsonl
--Pattern '"aprobado"'`.
+### Los comandos de revisión
+
+Son tres. A la izquierda la forma de terminal Unix, y a la derecha
+la de PowerShell, que es donde se desarrolla este proyecto.
+
+Que la aprobación esté en el código.
+
+```
+grep -n "esperar_aprobacion(" src/agente_con_memoria.py
+findstr /N "esperar_aprobacion(" src\agente_con_memoria.py
+```
+
+Devuelve una línea y no dos, porque la definición de
+`esperar_aprobacion` vive en el módulo de soporte.
+
+Que el archivo de trazas no esté vacío.
+
+```
+wc -l src/trazas_agente.jsonl
+(Get-Content src\trazas_agente.jsonl).Count
+```
+
+Que la herramienta de riesgo alto haya quedado registrada con su
+decisión.
+
+```
+grep -c '"aprobado"' src/trazas_agente.jsonl
+(Select-String -Path src\trazas_agente.jsonl -Pattern '"aprobado"').Count
+```
 
 ### 3. Una respuesta final que no coincide con ninguna observación
 
@@ -187,6 +214,7 @@ roto.
   devolvió algo equivocado o incompleto.
 - La redacción agregó algo. Las herramientas respondieron bien y la
   respuesta final afirma cosas que ninguna devolvió.
+
 **3. Corregir según el caso, y solo eso.**
 
 - Si eligió mal la herramienta, ajustar el docstring de esa
@@ -202,6 +230,7 @@ roto.
   las pruebas antes de corregirlo.
 - Si la redacción agregó algo, revisar el prompt del sistema. Es el
   caso del patrón 3 de arriba.
+
 **4. Si la falla fue en la herramienta de riesgo alto, sacarla de
 circulación mientras se corrige.** No se deja andando una
 herramienta irreversible que se comportó de forma inesperada. Se
@@ -301,14 +330,20 @@ fuera del corpus o de las herramientas      ninguno
 ```
 
 En una corrida anterior del mismo día, el agente había nombrado los
-artículos 159 y 73, que no están en el corpus, y había descrito mal
-el número 6 del artículo 159. Después de agregar al párrafo del
-cálculo el tope del artículo 172 y el recargo del artículo 168, las
-doce respuestas medidas se mantuvieron dentro del corpus.
+artículos 159 y 73, que ese día no estaban en el corpus, y había
+descrito mal el número 6 del artículo 159. Después de agregar al
+párrafo del cálculo el tope del artículo 172 y el recargo del
+artículo 168, las doce respuestas medidas se mantuvieron dentro del
+corpus.
 
 Eso no prueba que no vuelva a ocurrir. Lo que muestra es dónde
 ocurre, que es en los artículos que el corpus no incluye, y es la
 razón por la que el corpus existe.
+
+Esa observación fue la que llevó a cargar el artículo 159, y con él
+el 172, al día siguiente. El corpus pasó de nueve artículos a once
+en un commit aparte, porque las mediciones de esta página se
+hicieron sobre el de nueve.
 
 **Patrones sospechosos encontrados.**
 

@@ -20,20 +20,42 @@ lo que respondió la aplicación contra lo que dice la ley, y una
 respuesta construida de memoria no se puede contrastar con nada.
 
 Este corpus tiene dos límites conocidos. Si la ley cambia, el
-archivo queda viejo hasta que alguien lo actualice. Y son nueve
+archivo queda viejo hasta que alguien lo actualice. Y son once
 artículos, de modo que para cualquier otro tema la búsqueda contesta
 que no lo encontró.
 
 Ese segundo límite se puede medir. Los artículos cargados remiten a
-ocho artículos del Código que no están. El más citado es el 159, seis
-veces, con causales de término que el 162, el 163 y el 168 invocan
-por su número. Y está el 172, al que el 163 remite el cálculo de la
-indemnización. Una respuesta puede quedar apuntando a un texto que
-la búsqueda no entrega.
+otros once del Código que no están. El más citado es el 169, con dos
+menciones, y los otros diez traen una cada uno. Una respuesta
+todavía puede quedar apuntando a un texto que la búsqueda no
+entrega.
 
-Una versión de producción consultaría la fuente en vivo o indexaría
-el Código completo para buscar por significado y no por palabra
-clave.
+Por qué están el 159 y el 172
+
+Los dos entraron por esa misma medición. El 159 era el hueco más
+grande, con seis menciones, dos en el 162, una en el 163 y tres en
+el 168, que invocan sus causales por el número sin decir qué dicen.
+Ningún otro artículo ausente pasaba de una mención.
+
+Y el daño se alcanzó a medir. En una corrida, el agente describió el
+número 6 del 159 como la salida intempestiva del trabajador, que es
+el 160 número 4 letra a), cuando el 6 es el caso fortuito o fuerza
+mayor. Tomó una frase de un artículo que tenía y la pegó a un número
+de uno que no.
+
+El 172 es el tope de noventa unidades de fomento sobre la
+remuneración con que se calcula la indemnización. El cálculo del
+proyecto no lo aplica, porque no tiene el valor de la UF, y hasta
+entonces el tope no estaba ni en el texto cargado.
+
+Una versión de producción consultaría la fuente en vivo o cargaría
+el Código completo, para que la cobertura no dependa de haber
+elegido bien once artículos.
+
+La forma de buscar es otra cosa. Esta función busca por palabra
+clave. El Bloque 24 indexa este mismo texto para buscarlo también
+por significado, de modo que las dos búsquedas quedan sobre el
+mismo corpus de once artículos.
 
 Por qué vive aparte del agente
 
@@ -46,7 +68,8 @@ desacoplando las funciones auxiliares hacia módulos de soporte para
 mantener conciso el punto de entrada. Esa observación se hizo sobre
 main.py, y el mismo criterio se aplica al archivo del agente, que
 también se ejecuta directamente y que llevaba el corpus completo
-adentro. Son 284 líneas que salieron del punto de entrada.
+adentro. Al moverlo salieron 284 líneas de ese punto de entrada. El
+módulo creció después, cuando entraron el 159 y el 172.
 
 La búsqueda se expone como función común, sin el decorador @tool.
 Decorarla es decisión de quien la use como herramienta, y así el
@@ -56,7 +79,8 @@ Fuente del texto
 
 El Código del Trabajo publicado por la Biblioteca del Congreso
 Nacional. Los artículos cargados son el 40 bis, el 40 bis D, el 66,
-el 160, el 161, el 162, el 163, el 168 y el inciso primero del 177.
+el 159, el 160, el 161, el 162, el 163, el 168, el 172 y el inciso
+primero del 177.
 """
 
 import unicodedata
@@ -89,6 +113,18 @@ def sin_tildes(texto):
 # "muer" calza con muerte y muerto, y "muri" con murió y murieron.
 # Ninguna de las dos cubre a la otra, porque la raíz cambia de vocal.
 #
+# El 172 no lleva "uf" como clave, aunque el artículo trate del tope
+# en unidades de fomento. Son dos caracteres y calzan dentro de
+# palabras como sufrió o insuficiente, que no vienen al caso. Va
+# "unidades de fomento" escrito completo.
+#
+# El 159 no lleva clave de muerte, aunque su número 3 sea la muerte
+# del trabajador. "muer" y "muri" ya disparan el 66, y agregarlas al
+# 159 haría que toda consulta por el permiso por fallecimiento
+# arrastre además las seis causales de término. El costo de no
+# ponerlas es que una consulta por la muerte del propio trabajador
+# llega al 66 y no al 159.
+#
 # El texto de cada artículo va literal, con los incisos separados por
 # salto de línea y numerados entre corchetes. No va resumido porque
 # un resumen aplana la estructura del artículo, y los artículos se
@@ -98,11 +134,18 @@ def sin_tildes(texto):
 # lea tiene que suponer a qué apunta. Lo que esa suposición produjo
 # está registrado en docs/limites_bloque21.md.
 #
-# El 160 no lleva corchetes porque el artículo se numera solo, del
-# 1.- al 7.-, y esa numeración es la que hay que conservar.
+# El 159 y el 160 no llevan corchetes porque los dos se numeran
+# solos, el 159 del 1.- al 6.- y el 160 del 1.- al 7.-, y esa
+# numeración es la que hay que conservar.
 #
 # El 40 bis y el 40 bis D tampoco los llevan, porque son de un solo
 # inciso y el número no distinguiría nada.
+#
+# En el 163 y en el 168 hay líneas con corchete y líneas sin él, y
+# la diferencia no es un olvido. Las letras que van dentro de un
+# inciso no llevan corchete, que son las a) y b) del inciso 5 del
+# 163 y las a), b) y c) del inciso 1 del 168. El corchete marca
+# incisos, y esas letras viven adentro de uno.
 #
 # Del 177 va solo el inciso primero, que es el que trae el plazo de
 # diez días hábiles. El artículo sigue con doce incisos de
@@ -110,20 +153,29 @@ def sin_tildes(texto):
 # no se lea como si fuera el artículo completo.
 #
 # Lo que va entre [nota: ...] es anotación de este proyecto y no
-# texto legal. Son seis y resuelven las remisiones que un artículo
-# hace a sus propios incisos, una en el 66, una en el 161, tres en
-# el 163 y una en el 168. Se insertan dentro de la oración y no como
+# texto legal. Son trece y hacen cuatro trabajos distintos.
+#
+# Siete resuelven las remisiones que un artículo hace a sus propios
+# incisos, una en el 66, una en el 161, tres en el 163, una en el
+# 168 y una en el 172. Se insertan dentro de la oración y no como
 # nota al margen, para que al citar la oración la aclaración vaya
 # incorporada y no pueda quedar atrás, y para que la expresión "el
 # trabajador del inciso primero" no llegue a destino sin referente.
 #
-# Hay tres notas más que no resuelven una remisión interna. La del
-# 40 bis D fija su alcance, porque el artículo habla de la
-# indemnización que pudiere corresponderle al trabajador sin decir a
-# qué trabajador, y eso lo establece el párrafo que abre el 40 bis.
-# Las del 162 y del 168 avisan de un texto al que su propio artículo
-# remite y que este corpus no tiene, los números del 159 en un caso,
-# y el artículo 153 con el Título IV del Libro II en el otro.
+# Una resuelve una remisión a otro artículo que este corpus sí
+# tiene. Es la del 162, que nombra los números 4, 5 y 6 del 159.
+#
+# Dos avisan de un texto al que su propio artículo remite y que este
+# corpus no tiene. En el 168 es el artículo 153 con el Título IV del
+# Libro II, y en el 172 son el 163 bis, el 169, el 170 y el 171.
+#
+# Las tres restantes fijan alcance o estructura. La del 40 bis D
+# dice de qué trabajador habla el artículo, porque menciona la
+# indemnización que pudiere corresponderle sin decir a cuál, y eso
+# lo establece el párrafo que abre el 40 bis. La del 159 avisa que
+# los tres párrafos que siguen al número 4 lo desarrollan y no son
+# causales nuevas. La del 177 avisa de los doce incisos de
+# procedimiento que no van.
 #
 # No se tocaron las referencias que no son ambiguas. "Este artículo"
 # y "el presente artículo" se explican solos, y las que dicen "el
@@ -194,7 +246,40 @@ ARTICULOS = (
         "podrán ser compensados en dinero."
     ),
     (
-        ("probidad", "acoso", "abandono", "incumplimiento grave",
+        (
+            "renunci", "mutuo acuerdo", "plazo fijo",
+            "vencimiento del plazo", "caso fortuito", "fuerza mayor",
+            "conclusion del trabajo",
+        ),
+        "Art. 159. El contrato de trabajo terminará en los siguientes "
+        "casos:\n"
+        "1.- Mutuo acuerdo de las partes.\n"
+        "2.- Renuncia del trabajador, dando aviso a su empleador con "
+        "treinta días de anticipación, a lo menos.\n"
+        "3.- Muerte del trabajador.\n"
+        "4.- Vencimiento del plazo convenido en el contrato. La "
+        "duración del contrato de plazo fijo no podrá exceder de un "
+        "año. [nota: los tres párrafos que siguen desarrollan este "
+        "número 4 y no son causales nuevas]\n"
+        "El trabajador que hubiere prestado servicios discontinuos en "
+        "virtud de más de dos contratos a plazo, durante doce meses o "
+        "más en un período de quince meses, contados desde la primera "
+        "contratación, se presumirá legalmente que ha sido contratado "
+        "por una duración indefinida.\n"
+        "Tratándose de gerentes o personas que tengan un título "
+        "profesional o técnico otorgado por una institución de "
+        "educación superior del Estado o reconocida por éste, la "
+        "duración del contrato no podrá exceder de dos años.\n"
+        "El hecho de continuar el trabajador prestando servicios con "
+        "conocimiento del empleador después de expirado el plazo, lo "
+        "transforma en contrato de duración indefinida. Igual efecto "
+        "producirá la segunda renovación de un contrato de plazo fijo.\n"
+        "5.- Conclusión del trabajo o servicio que dio origen al "
+        "contrato.\n"
+        "6.- Caso fortuito o fuerza mayor."
+    ),
+    (
+        ("probidad", "acoso", "abandon", "incumpl",
          "sin derecho a indemnizacion"),
         "Art. 160. El contrato de trabajo termina sin derecho a "
         "indemnización alguna cuando el empleador le ponga término "
@@ -285,9 +370,11 @@ ARTICULOS = (
         "señaladas en el artículo 160, deberá comunicarlo por escrito "
         "al trabajador, personalmente o por carta certificada enviada "
         "al domicilio señalado en el contrato, expresando la o las "
-        "causales invocadas y los hechos en que se funda. [nota: los "
-        "números 4, 5 y 6 del artículo 159 son causales de término que "
-        "este corpus no incluye]\n"
+        "causales invocadas y los hechos en que se funda. [nota: el "
+        "artículo 159 está en este corpus, y sus números 4, 5 y 6 son "
+        "el vencimiento del plazo convenido, la conclusión del trabajo "
+        "que dio origen al contrato y el caso fortuito o fuerza "
+        "mayor]\n"
         "[2] Esta comunicación se entregará o deberá enviarse, dentro "
         "de los tres días hábiles siguientes al de la separación del "
         "trabajador. Si se tratare de la causal señalada en el número 6 "
@@ -363,7 +450,7 @@ ARTICULOS = (
         "sancionarán con multa de 2 a 20 UTM."
     ),
     (
-        ("indemnizacion", "anos de servicio", "años de servicio"),
+        ("indemniz", "anos de servicio"),
         "[1] Art. 163. Si el contrato hubiere estado vigente un año "
         "o más y el empleador le pusiere término en conformidad al "
         "artículo 161, deberá pagar al trabajador, la indemnización "
@@ -482,7 +569,37 @@ ARTICULOS = (
         "hábiles desde la separación del trabajador."
     ),
     (
-        ("finiquito",),
+        (
+            "tope", "unidades de fomento", "base de calculo",
+            "ultima remuneracion mensual", "remuneraciones variables",
+            "sobretiempo",
+        ),
+        "[1] Art. 172. Para los efectos del pago de las indemnizaciones "
+        "a que se refieren los artículos 163, 163 bis, 168, 169, 170 y "
+        "171, la última remuneración mensual comprenderá toda cantidad "
+        "que estuviere percibiendo el trabajador por la prestación de "
+        "sus servicios al momento de terminar el contrato, incluidas "
+        "las imposiciones y cotizaciones de previsión o seguridad "
+        "social de cargo del trabajador y las regalías o especies "
+        "avaluadas en dinero, con exclusión de la asignación familiar "
+        "legal, pagos por sobretiempo y beneficios o asignaciones que "
+        "se otorguen en forma esporádica o por una sola vez al año, "
+        "tales como gratificaciones y aguinaldos de navidad. [nota: de "
+        "los artículos que enumera, este corpus incluye el 163 y el "
+        "168, y no incluye el 163 bis, el 169, el 170 ni el 171]\n"
+        "[2] Si se tratare de remuneraciones variables, la "
+        "indemnización se calculará sobre la base del promedio "
+        "percibido por el trabajador en los últimos tres meses "
+        "calendario.\n"
+        "[3] Con todo, para los efectos de las indemnizaciones "
+        "establecidas en este título [nota: son las que el inciso "
+        "primero enumera, los artículos 163, 163 bis, 168, 169, 170 y "
+        "171], no se considerará una remuneración mensual superior a 90 "
+        "unidades de fomento del último día del mes anterior al pago, "
+        "limitándose a dicho monto la base de cálculo."
+    ),
+    (
+        ("finiquit",),
         "[1] Art. 177. El finiquito, la renuncia y el mutuo acuerdo "
         "deberán constar por escrito. El instrumento respectivo que "
         "no fuere firmado por el interesado y por el presidente del "
@@ -511,8 +628,14 @@ def buscar_articulos(consulta):
     "indemnización por años de servicio" y "me despidieron" encuentran
     lo suyo sin tener que coincidir palabra por palabra.
 
-    Devuelve siempre un texto, nunca lanza. Si no encuentra nada lo
-    dice, para que quien la llame tenga algo con lo que seguir.
+    Para una consulta de texto devuelve siempre un texto, también
+    cuando no encuentra nada, para que quien la llame tenga algo con
+    lo que seguir.
+
+    Si le llega algo que no es texto, lanza. No se atrapa porque el
+    args_schema de la herramienta que la envuelve valida el tipo
+    antes de invocarla, y un control de tipo repetido en los dos
+    lados oculta dónde estaba el error cuando aparece.
     """
 
     pregunta = sin_tildes(consulta)
