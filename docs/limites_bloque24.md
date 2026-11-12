@@ -396,7 +396,66 @@ corpus.
 
 ---
 
-## 12. Lo que esta medición no prueba
+## 12. La indexación, lo que se corrió y las tres comprobaciones
+
+Corrida del 11 de noviembre de 2026, desde la raíz del proyecto, con
+`python src/indexar_corpus.py`. Es la única parte de la cadena que
+hace llamadas reales a la API, una por fragmento.
+
+Las salidas que esta sección cita son las del script tal como estaba
+entregado ese día. La sección 15 lo adecuó más tarde y cambió lo que
+imprime, así que correrlo hoy no devuelve estas líneas exactas. Los
+números sí, 45 fragmentos indexados y 45 contados.
+
+```
+Partiendo el corpus con tope 700 y overlap 126.
+Son 45 fragmentos y cada uno cuesta una llamada de embeddings.
+Indexados 45 fragmentos en vectorstore/
+```
+
+Los 45 son los mismos que dio la medición de la sección 2 con ese
+tope, así que el script indexó lo que la tabla decía que iba a
+indexar.
+
+**Las tres comprobaciones que pide la actividad.**
+
+```
+1  la carpeta se crea con archivos adentro        si
+2  un interprete nuevo cuenta 45 sin reindexar    si
+3  vectorstore/ esta en el .gitignore             si
+```
+
+La segunda es la salida de correr el mismo archivo con `--verificar`,
+que abre un proceso nuevo.
+
+```
+El índice de vectorstore/ tiene 45 fragmentos.
+Se contaron sin calcular ningún embedding, en un intérprete nuevo.
+```
+
+La primera quedó probada por esa misma corrida. `--verificar`
+empieza revisando que la carpeta exista y tenga algo adentro, y si
+estuviera vacía habría dicho que no hay nada en vez de dar el
+conteo.
+
+La tercera se comprobó con `git status` después de que la carpeta ya
+existía en el disco. `vectorstore/` no aparece ni como modificado ni
+como sin seguimiento.
+
+**Un guardia que la actividad no pide.** Volver a correr la
+indexación sobre una carpeta que ya tiene el índice vuelve a pagar
+una llamada por fragmento. El script se fija antes y no hace nada.
+
+Ese guardia tenía un defecto que las lecciones del Bloque 25 dejaron
+a la vista, y la sección 15 cuenta cómo quedó después.
+
+**Lo que esta corrida no dice.** Si la búsqueda por significado
+recupera el fragmento correcto. De eso se trata la sección
+siguiente.
+
+---
+
+## 13. Lo que esta medición no prueba
 
 El tamaño del fragmento se eligió por cómo queda partido el corpus,
 no por cómo responde la búsqueda por significado. Esta medición no
@@ -416,7 +475,7 @@ indexó.
 
 ---
 
-## 13. Las advertencias de deprecación de las corridas del agente
+## 14. Las advertencias de deprecación de las corridas del agente
 
 Las dos corridas de este día imprimieron dos
 `LangChainDeprecationWarning`, una por `RunnableWithMessageHistory` y
@@ -426,3 +485,105 @@ No interrumpen nada y van a la salida de error. Las dos clases son
 las que prescribe la lección del Bloque 22, y cambiarlas por la
 persistencia de LangGraph sería alejarse de lo que el curso pide. La
 advertencia anuncia una versión futura, no un error de este código.
+
+---
+
+## 15. Lo que cambió con las lecciones del Bloque 25
+
+Las tres lecciones del Bloque 25 no traen actividad que se entregue.
+La última lo dice textual, que es una réplica guiada para el propio
+aprendizaje y que no se commitea. Pero dos de ellas establecen cosas
+que el script de este bloque no cumplía, y por eso se adecuó el 11
+de noviembre de 2026, con una reindexación de 45 llamadas.
+
+**El nombre de la colección.** El índice estaba en la colección por
+defecto de Chroma, que se llama `langchain`. La guía de
+troubleshooting pide un nombre explícito y advierte que dejar el por
+defecto es la causa más común de colecciones fantasma, cuando dos
+corpus distintos terminan compartiendo una colección sin que nadie
+se dé cuenta. Pasó a `corpus_legal_chile`.
+
+Se hizo ahora y no después porque el script de consulta del Bloque
+26 se tiene que conectar a la misma colección. Cambiarlo con ese
+script ya escrito obligaría a corregir los dos.
+
+**El metadato con el número del artículo.** Es el cambio que más
+pesa y no salió de la lección sino de mirar los fragmentos.
+
+El primer fragmento de cada artículo empieza con "Art. 162." y se
+identifica solo. Los demás no. El fragmento 2 del artículo 40 bis D
+empieza en "del contrato. Con todo, si la indemnización" y no dice
+de qué artículo es.
+
+La recuperación del Bloque 26 va a traer fragmentos cualesquiera, no
+solo los primeros. Sin el artículo, el modelo no tiene con qué citar,
+y la regla de este proyecto es que toda respuesta se pueda contrastar
+contra el texto que la respalda. Ahora el número viaja como metadato
+en cada fragmento.
+
+**Los ids explícitos.** Quedaron del tipo `art_162_3`, el artículo y
+la posición del fragmento dentro de él, con el número reiniciando en
+cada artículo para que agregar un artículo no corra los ids de los
+demás. La lección los recomienda para quien actualice el corpus de a
+poco, y este corpus cambió de nueve artículos a once.
+
+```
+se comprobó que un id repetido sobrescribe y no duplica
+
+  agregando el mismo documento con el id x1     el conteo quedó en 1
+  agregándolo otra vez con el mismo id          el conteo quedó en 1
+```
+
+**El guardia dejó de bloquear.** La lección avisa que un índice
+desactualizado sigue funcionando y no da ningún error, y el guardia
+anterior producía justo eso, se negaba a indexar y dejaba el índice
+viejo. Ahora `--verificar` compara lo guardado contra lo que daría
+el corpus de hoy y avisa si quedó atrás, y `--reindexar` lo rehace
+sobrescribiendo por id, sin borrar la carpeta a mano.
+
+**El reintento ante el 429.** Se agregó con el patrón de la guía, que
+reintenta solo ante el límite de peticiones, espera cada vez el
+doble, y vuelve a lanzar el error si se agotan los intentos.
+
+La decisión anterior había sido no ponerlo, con el argumento de que
+un reintento automático sobre algo que cuesta dinero debía ser
+decisión de quien lo corre, por analogía con el que se le quitó al
+agente. Esa analogía era falsa. El del agente podía repetir un envío
+irreversible, y un 429 significa que la llamada no se hizo.
+
+Lo que la guía no dice es el costo. `from_documents` no guarda
+progreso parcial, de modo que un reintento vuelve a pagar los
+fragmentos que ya habían entrado. Con 45 se acepta. Con un corpus
+grande convendría indexar por lotes, que los ids ya permiten.
+
+**La comprobación de integridad.** Se tomó la versión de la lección y
+no la del código del profesor. La lección imprime las dos sumas de
+caracteres para comparar. El código del profesor las exige iguales y
+lanza un error si no lo son.
+
+```
+la corrida sobre este corpus
+
+  caracteres en los fragmentos    21.282
+  caracteres en el corpus         20.480
+  diferencia                         802
+```
+
+Esos 802 caracteres son el texto que el solape repite a propósito,
+menos los saltos de línea que el partidor consume en los cortes. La
+lección dice que esa diferencia es esperable y no un error. Con la
+condición del código del profesor, este corpus no se habría indexado
+nunca. Lo que sí corta la indexación es un fragmento vacío o uno
+repetido.
+
+**La forma de las dos funciones.** Pasaron a recibir la carpeta y la
+colección como argumentos, con los nombres que usa la receta de la
+lección, `indexar_corpus` y `cargar_vectorstore`, para que el script
+del Bloque 26 las importe en vez de reescribirlas.
+
+**Lo que no se adoptó.** La guía usa `os.path.abspath` como valor de
+la carpeta. No resuelve nada, porque `abspath` se resuelve contra el
+directorio donde se está parado igual que una ruta relativa. Lo que
+sí sirve es lo que la propia guía indica para diagnosticar, imprimir
+la ruta absoluta para poder compararla entre dos scripts, y eso se
+hace al arrancar.
