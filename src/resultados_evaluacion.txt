@@ -1,0 +1,24 @@
+Fecha: 2026-11-14
+Configuracion: k=4, chunk_size=700, chunk_overlap=126
+Embeddings: models/gemini-embedding-001
+Splitter: RecursiveCharacterTextSplitter
+Coleccion: corpus_legal_chile
+
+0.25  1.00  soy subgerente, ¿el despido es distinto para mi cargo?
+0.25  1.00  tengo un conflicto con una compañera que me hostiga y no tengo pruebas, ¿pueden despedirme por eso?
+0.50  1.00  ¿en qué casos se termina el contrato sin que nadie despida a nadie?
+0.25  1.00  me avisaron el despido con una carta común, no certificada, ¿vale igual?
+0.25  1.00  mi contrato a plazo fijo venció y no me dijeron nada, ¿se terminó solo?
+0.25  1.00  mi contrato a plazo fijo venció y yo seguí yendo a trabajar, ¿qué pasa con mi contrato?
+0.25  1.00  mi empleador no pagó mis cotizaciones y me despidió, ¿qué pasa con ese despido?
+0.25  1.00  ¿qué se cuenta como sueldo para calcular la indemnización?
+0.00  n/a  ¿cómo se calcula el aguinaldo en un contrato indefinido?
+0.25  0.50  trabajo veinte horas a la semana, ¿cómo se calcula mi indemnización?
+0.00  0.00  me despidieron por necesidades de la empresa, ¿a qué tengo derecho?
+0.25  1.00  ¿en qué consiste la indemnización por años de servicio y qué incluye?
+0.25  1.00  ¿en qué casos tengo fuero laboral?
+0.00  n/a  ¿cómo se calcula mi finiquito?
+0.00  0.00  ¿hay diferencia en el finiquito si mi contrato es indefinido o a plazo fijo?
+0.25  1.00  creo que me despidieron injustamente, ¿qué puedo hacer?
+
+promedio -> precision: 0.203  recall: 0.821

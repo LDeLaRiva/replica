@@ -162,6 +162,7 @@ venv.bak/
 .venv/
 .env/
 vectorstore/
+vectorstore_pruebas/
 
 #modulos personales o de pruebas
 src/peticiones.py
