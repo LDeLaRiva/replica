@@ -245,6 +245,19 @@ def ids_con_la_frase(frase, guardado):
     }
 
 
+def articulos_de(ids, guardado):
+    """Devuelve las etiquetas de artículo de esos fragmentos.
+
+    Un fragmento sin etiqueta en el metadato cuenta como una
+    etiqueta más, para que la comparación no falle al ordenar.
+    """
+    etiqueta_de = dict(zip(guardado["ids"], guardado["metadatas"]))
+    return {
+        (etiqueta_de.get(ident) or {}).get("articulo") or "sin etiqueta"
+        for ident in ids
+    }
+
+
 def resolver_etiquetas(casos, guardado):
     """Traduce las frases de cada caso a los ids del índice.
 
@@ -252,8 +265,13 @@ def resolver_etiquetas(casos, guardado):
     haría que esa pregunta midiera cero sin que nada avise, y un cero
     por una etiqueta mal copiada se parece demasiado a un cero por
     una recuperación mala.
+
+    Corta también si una frase cae en fragmentos de más de un
+    artículo. Eso significaría que la frase no identifica al inciso
+    que se quiso etiquetar, y la etiqueta de esa pregunta estaría
+    apuntando a dos lugares distintos del Código.
     """
-    resueltos, rotas = [], []
+    resueltos, rotas, ambiguas = [], [], []
 
     for numero, caso in enumerate(casos, start=1):
         relevantes = set()
@@ -261,6 +279,11 @@ def resolver_etiquetas(casos, guardado):
             encontrados = ids_con_la_frase(frase, guardado)
             if not encontrados:
                 rotas.append((numero, frase))
+
+            articulos = articulos_de(encontrados, guardado)
+            if len(articulos) > 1:
+                ambiguas.append((numero, frase, sorted(articulos)))
+
             relevantes |= encontrados
 
         resueltos.append({
@@ -276,6 +299,17 @@ def resolver_etiquetas(casos, guardado):
             "Hay frases que no aparecen en ningún fragmento del "
             "índice. O están mal copiadas, o el índice no está al "
             f"día con el corpus.\n{detalle}"
+        )
+
+    if ambiguas:
+        detalle = "\n".join(
+            f"  pregunta {n}, artículos {', '.join(a)}, {f[:40]}"
+            for n, f, a in ambiguas
+        )
+        raise ValueError(
+            "Hay frases que caen en más de un artículo, así que no "
+            "identifican el inciso que se quiso etiquetar. Hay que "
+            f"alargarlas hasta que sean únicas.\n{detalle}"
         )
 
     return resueltos

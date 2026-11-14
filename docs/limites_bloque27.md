@@ -94,6 +94,12 @@ Visto pregunta por pregunta, el 0.821 se arma así.
 Diez de las catorce traen todo lo que necesitan. El problema está
 concentrado en tres.
 
+La medición se corrió dos veces, la segunda con una versión del script
+que incorpora una guarda más, y dio los mismos números hasta la tercera
+cifra. La recuperación es determinista, como ya se había visto en el
+Bloque 26, y por eso estas cifras se pueden comparar contra las de otra
+configuración sin tener que promediar varias corridas.
+
 ---
 
 ## 4. La curva de k, de 1 a 8
@@ -112,12 +118,18 @@ veces.
   4       0.203    0.821    0.326
   5       0.175    0.857    0.291
   6       0.156    0.893    0.266
+  7       0.134    0.893    0.233
+  8       0.117    0.893    0.207
 ```
 
-Entre k=6 y k=8 el recall no se mueve, se queda en 0.893. Eso significa
-que lo que falta no aparece en el top 8 de ninguna manera, y por eso la
-tabla se corta en el 6. La precisión de esas dos filas no quedó anotada,
-y el motivo está en la sección 16.
+Entre el 6 y el 8 el recall no se mueve, se queda en 0.893. Eso significa
+que lo que falta no aparece en el top 8 de ninguna manera, por mucho que
+se amplíe la ventana.
+
+La precisión, en cambio, sigue bajando, de 0.156 a 0.134 y a 0.117. Es lo
+que tiene que pasar. Si se traen ocho fragmentos y los relevantes
+encontrados siguen siendo los mismos que con seis, la proporción de
+relleno crece sin que se gane nada.
 
 La curva dice dos cosas distintas según qué medida se mire.
 
@@ -471,6 +483,20 @@ revisan antes de calcular cualquier medida.
 La **4** habría detenido la corrida mala. La **6** habría evitado que
 imprimiera un número.
 
+### Una guarda que faltaba en el propio evaluador
+
+La cabecera de `src/evaluacion_recuperacion.py` decía que el script corta
+si una frase de etiqueta no aparece **o si calza en más de un artículo**.
+La primera mitad estaba implementada y la segunda no. Era una guarda
+anunciada y ausente.
+
+Importa porque una frase que cayera en dos artículos distintos no estaría
+identificando el inciso que se quiso etiquetar, y la etiqueta de esa
+pregunta apuntaría a dos lugares del Código sin que nada avisara.
+
+La guarda quedó escrita y las dieciocho frases del conjunto la pasan. Cada
+una resuelve a fragmentos de un solo artículo.
+
 ---
 
 ## 15. El formato del corpus no es uniforme
@@ -527,9 +553,9 @@ tener que tolerar las dos formas. Las dos las cubre la `ETIQUETA` de
    razón de la sección 13.
 5. `escribir_resultados` guarda la tabla de k=4 y los promedios, pero no
    guarda la curva de k. La curva se imprime en pantalla y se pierde al
-   cerrar la terminal. Por eso la tabla de la sección 4 llega hasta el 6,
-   que es lo que quedó anotado. Conviene que el archivo de resultados
-   guarde también la curva, ya que es lo que justifica el k elegido.
+   cerrar la terminal. Conviene que el archivo de resultados la guarde
+   también, porque es lo que justifica el k elegido y hoy hay que volver
+   a correr el script, con su costo, para recuperarla.
 **Que vienen del Bloque 26 y siguen abiertos.**
 
 6. Mover la nota de alcance del artículo 40 bis D al principio, donde
