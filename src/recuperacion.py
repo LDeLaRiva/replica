@@ -16,7 +16,8 @@ sin avisar y la búsqueda devuelve una lista vacía sin lanzar error.
 Es el fallo más silencioso de esta etapa y la lección lo advierte.
 
 Las mediciones que respaldan estas decisiones y lo que mostraron las
-corridas están en docs/limites_bloque26.md.
+corridas están en docs/limites_bloque26.md. El cambio de la plantilla
+que se hizo después está medido en docs/limites_bloque28.md.
 
 Por qué importa los valores de indexar_corpus.py
 
@@ -36,7 +37,7 @@ nombre de archivo reconocible del proyecto y nunca la palabra
 desconocida.
 
 Este corpus está entero en un archivo, así que el nombre por sí solo
-sería igual en los cuarenta y cinco fragmentos y no distinguiría
+sería igual en todos los fragmentos y no distinguiría
 nada. El artículo sí identifica el origen, y además es lo único
 verificable fuera de este repositorio. Por eso van los dos.
 
@@ -56,16 +57,35 @@ número al artículo. Los ids del índice, del tipo art_162_0, no viajan
 ni en el texto ni en el metadato, así que el modelo no los puede
 confundir con un número de artículo.
 
-Por qué la plantilla trae una frase exacta para el vacío
+Por qué la plantilla ofrece tres salidas y no dos
 
-Es la plantilla de la lección con una sola cosa agregada. Cuando el
-contexto no alcanza, el modelo responde una frase determinada en vez
-de redactar la suya, y así la comprobación que pide la lección se
-hace en código y no a ojo.
+Es la plantilla de la lección con dos cosas agregadas. La frase
+exacta para el vacío, y la salida del medio.
 
-La frase vive en SIN_CONTEXTO y se inserta una sola vez, para que la
-que se le pide al modelo y la que se busca en la respuesta no puedan
-quedar distintas.
+Cuando el contexto no alcanza, el modelo responde una frase
+determinada en vez de redactar la suya, y así la comprobación que
+pide la lección se hace en código y no a ojo. La frase vive en
+SIN_CONTEXTO y se inserta una sola vez, para que la que se le pide al
+modelo y la que se busca en la respuesta no puedan quedar distintas.
+
+La salida del medio se agregó en el Bloque 28, después de medirla.
+Con solo dos salidas, responder todo o abstenerse de todo, una
+pregunta que pide dos cosas y un contexto que cubre una termina en
+abstención completa. Se comprobó con el contexto idéntico, los mismos
+cuatro fragmentos y los mismos 2082 caracteres, cuatro corridas de
+cuatro. Las mismas preguntas partidas en mitades respondían.
+
+Ahora son tres. Si el contexto cubre todo, el modelo responde. Si
+cubre una parte, responde esa parte y dice cuál no puede responder
+con ese contexto. Si no cubre nada, la frase exacta.
+
+Las dos consultas de fuera del corpus siguen recibiendo la frase
+exacta, que es lo que la actividad del Bloque 26 exige, y eso se
+midió al cambiar la plantilla y no se dio por hecho.
+
+Para una consulta laboral la salida del medio importa más que en otro
+dominio. Callarse entero deja a la persona sin nada que sí estaba en
+la ley, y media respuesta sin avisar la deja creyendo que tiene todo.
 
 Por qué las citas se traducen de vuelta, y con dos expresiones
 
@@ -82,12 +102,29 @@ dígitos y separadores, y después los números de cada grupo. Lo
 primero deja afuera a las notas del corpus, que también van entre
 corchetes y traen números adentro.
 
-Por qué k vale 4
+Por qué k vale 3
 
-La actividad ofrece empezar en 3 o en 4 y pide que cualquier ajuste
-vaya respaldado por una medición. Con 3, el fragmento que respondía
-una de las consultas de prueba quedaba justo debajo del corte. Más no
-se sube, porque es hasta donde llega lo medido.
+La actividad del Bloque 26 ofrece empezar en 3 o en 4 y pide que
+cualquier ajuste vaya respaldado por una medición.
+
+Con la partición de entonces, de setecientos caracteres y sin separar
+los incisos, ganaba el 4. Con 3, el fragmento que respondía una de
+las consultas de prueba quedaba justo debajo del corte, y la
+evaluación del Bloque 27 lo confirmó.
+
+Con la partición por inciso del Bloque 28 cada fragmento trae un
+inciso completo, de modo que hacen falta menos fragmentos para cubrir
+lo mismo. Medido sobre las dieciséis preguntas del conjunto de
+evaluación, el 3 supera a la configuración anterior en las tres
+medidas a la vez, precisión, recall y F1.
+
+Subir al 4 agregaría media pregunta de catorce y costaría un catorce
+por ciento más por consulta, y esa media pregunta es la que ya
+fallaba de la manera contenida, abstieniéndose en vez de contestar de
+otra cosa. Es la misma cuenta que dejó el k en 4 en el Bloque 27 y
+que ahora lo deja en 3.
+
+Las tablas están en docs/limites_bloque28.md.
 
 Por qué el modelo entra por parámetro
 
@@ -124,11 +161,14 @@ load_dotenv()
 # para que nunca nombre un archivo que ya no existe.
 ARCHIVO_CORPUS = os.path.basename(soporte_corpus_legal.__file__)
 
-# Cuántos fragmentos se recuperan por pregunta.
-RECUPERADOS = 4
+# Cuántos fragmentos se recuperan por pregunta. Es el k del proyecto
+# y lo importan los demás módulos, para que no quede escrito dos
+# veces y puedan quedar distintos.
+RECUPERADOS = 3
 
 # La frase que el modelo tiene que responder cuando el contexto no
-# alcanza. Se le pide en la plantilla y se busca en la respuesta.
+# cubre ninguna parte de la pregunta. Se le pide en la plantilla y se
+# busca en la respuesta.
 SIN_CONTEXTO = (
     "El contexto disponible no alcanza para responder esta consulta."
 )
@@ -137,12 +177,17 @@ SIN_CONTEXTO = (
 # contexto_de la usa para recortar.
 MARCA_CONTEXTO = "Contexto:\n"
 
-PROMPT_TEMPLATE = """Responde la pregunta usando SOLO el contexto de abajo. Cita la \
-fuente de cada afirmacion con su numero entre corchetes, como [1]. Si el contexto no \
-alcanza para responder, dilo explicitamente en vez de inventar, con esta frase exacta \
-y sin agregar nada mas.
+PROMPT_TEMPLATE = """\
+Responde la pregunta usando SOLO el contexto de abajo. Cita la \
+fuente de cada afirmacion con su numero entre corchetes, como [1].
 
-""" + SIN_CONTEXTO + """
+Si el contexto responde solo una parte de la pregunta, responde esa parte y \
+despues di con claridad que parte no se puede responder con este contexto.
+
+Si el contexto no responde ninguna parte de la pregunta, responde exactamente \
+esta frase y nada mas.
+
+\"""" + SIN_CONTEXTO + """\"
 
 """ + MARCA_CONTEXTO + """{contexto}
 
@@ -406,10 +451,12 @@ if __name__ == "__main__":
 
     print("  el contexto cambió entre las dos preguntas del corpus")
 
-    # La segunda, una por cada consulta de afuera. Se informa y no se
-    # corta, porque una respuesta que admita el vacío con otras
-    # palabras también cumple el criterio de la actividad. Lo que
-    # esta comprobación resuelve es el caso claro.
+    # La segunda, una por cada consulta de afuera. Estas dos no tienen
+    # ninguna parte cubierta por el corpus, de modo que les toca la
+    # frase exacta y no la salida del medio. Se informa y no se corta,
+    # porque una respuesta que admita el vacío con otras palabras
+    # también cumple el criterio de la actividad. Lo que esta
+    # comprobación resuelve es el caso claro.
     for etiqueta, respuesta_fuera in de_afuera:
         if SIN_CONTEXTO in respuesta_fuera:
             print(f"  {etiqueta}, se abstuvo sin inventar")

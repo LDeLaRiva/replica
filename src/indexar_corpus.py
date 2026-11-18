@@ -1,9 +1,9 @@
-"""Indexación del corpus legal en un vector store (Bloques 24 y 25).
+"""Indexación del corpus legal en un vector store (Bloques 24, 25 y 28).
 
-Toma los once artículos del corpus, los parte con el tope que se
-eligió midiendo, calcula un embedding por fragmento y guarda todo en
-disco. Después de esto, la consulta del Bloque 26 se conecta al
-índice sin volver a calcular nada.
+Toma los once artículos del corpus, los parte respetando sus incisos,
+calcula un embedding por fragmento y guarda todo en disco. Después de
+esto, la consulta del Bloque 26 se conecta al índice sin volver a
+calcular nada.
 
 Es la única parte de la cadena que hace llamadas reales a la API. Una
 por fragmento.
@@ -54,11 +54,71 @@ De ahí salen tres cosas. Que --reindexar sea seguro. Que se pueda
 reemplazar o borrar un artículo suelto sin tocar el resto. Y que no
 haga falta borrar la carpeta a mano para rehacer el índice.
 
-Por qué el tope es 700 y el solape 126
+Por qué la indexación borra los ids que sobran
 
-Salieron de la medición de medir_chunks.py, con el solape en el
-dieciocho por ciento que usa el ejemplo de la lección. La tabla y el
-razonamiento están en docs/limites_bloque24.md.
+Sobrescribir alcanza mientras los ids nuevos incluyan a los viejos.
+Cuando una configuración produce menos fragmentos que la anterior,
+los ids que sobran quedan en la colección con su texto antiguo y la
+búsqueda los sigue recuperando, mezclados con los nuevos.
+
+Eso pasó al cambiar el tope de 700 a 1500, que bajó el corpus de
+cuarenta y cinco fragmentos a diecinueve. El artículo 163 pasó de
+siete fragmentos a tres, y sus ids art_163_3 a art_163_6 no se
+sobrescribieron porque ya no se generan. Lo detectó --verificar, que
+contó cuarenta y cinco guardados contra diecinueve esperados.
+
+Por eso la indexación borra, al terminar, los ids que están en la
+colección y no están en la tanda que acaba de escribir. Borra después
+y no antes para que un fallo a mitad de camino no deje el índice
+vacío.
+
+Por qué los incisos se separan con línea en blanco antes de partir
+
+El corpus separa sus incisos con un salto de línea, igual que separa
+las letras a) y b) de adentro de un inciso. El splitter prefiere
+cortar en línea en blanco y después en salto simple, de modo que sin
+esa distinción trata el borde entre dos incisos igual que el borde
+entre dos letras, y corta en cualquiera de los dos.
+
+Medido sobre este corpus, trece de los cuarenta y cinco fragmentos de
+la configuración anterior empezaban a media oración o en una letra
+suelta. Cuatro de ellos traían una regla sin la condición que la
+limita, porque esa condición vive en el encabezado de su inciso.
+
+El daño se vio en una respuesta real. El modelo presentó como regla
+general de cálculo el promedio de los últimos once años del artículo
+40 bis D, que rige solo para la jornada parcial de treinta horas o
+menos, porque el fragmento que lo traía se cortaba antes de la nota
+de alcance.
+
+La línea en blanco se agrega aquí y no en el corpus. El texto está
+verificado contra la fuente y esta es una decisión de indexación, no
+del texto. Lo único que se inserta son saltos de línea, así que el
+contenido sin espacios queda idéntico y eso se puede comprobar.
+
+Por qué el tope es 1500 y el solape 270
+
+La unidad estructural más larga de este corpus mide 1057 caracteres.
+El tope tiene que superarla para que ningún inciso se parta por
+dentro, y con 1500 no queda ningún fragmento empezado a media
+oración.
+
+La regla no es el número, es el criterio. El tope tiene que ser mayor
+que la unidad estructural más larga del corpus. Cuando el corpus
+crezca y entre un inciso más largo, se vuelve a medir y se sube.
+
+El solape queda en el dieciocho por ciento del tope, la misma
+proporción que usaba la configuración anterior.
+
+El tope anterior era 700 y el solape 126, medidos en el Bloque 24
+sobre la longitud de los incisos y sin la separación por línea en
+blanco. La comparación de las dos configuraciones, con la curva de k
+y el costo por consulta de cada una, está en docs/limites_bloque28.md.
+
+Es además lo que la práctica publicada hace con textos legales,
+partir primero por el límite legal y recurrir a la partición
+recursiva solo adentro de la unidad. Las referencias están en el
+documento del Bloque 28.
 
 Por qué la carpeta y la colección son constantes
 
@@ -87,8 +147,8 @@ que podía repetir un envío irreversible.
 
 Lo que la guía no dice es el costo. from_documents no guarda un
 progreso parcial, de modo que un reintento vuelve a pagar los
-fragmentos que ya habían entrado. Con este corpus son 45 y el 429 es
-improbable, así que se acepta. Con un corpus grande convendría
+fragmentos que ya habían entrado. Con este corpus son diecinueve y el
+429 es improbable, así que se acepta. Con un corpus grande convendría
 indexar por lotes, que los ids explícitos ya permiten.
 """
 
@@ -110,8 +170,8 @@ load_dotenv()
 
 CARPETA_INDICE = "vectorstore/"
 COLECCION = "corpus_legal_chile"
-TOPE = 700
-SOLAPE = 126
+TOPE = 1500
+SOLAPE = 270
 MODELO_EMBEDDINGS = "models/gemini-embedding-001"
 
 # Reconoce "Art. 162.", "Art. 40 bis D." y "[1] Artículo 66.-", que
@@ -120,6 +180,23 @@ ETIQUETA = re.compile(
     r"(?:\[1\]\s*)?Art(?:ículo)?\.?\s+([\w\s]+?)\s*[.\-]"
 )
 
+# Un salto de línea que precede a un inciso [n] o a una causal
+# numerada N.- pasa a ser línea en blanco. Las letras a), b) y c) de
+# adentro de un inciso conservan el salto simple, y eso es lo que
+# hace que el splitter corte primero entre incisos y solo después
+# dentro de uno.
+SEPARA_INCISOS = re.compile(r"\n(?=(?:\[\d+\]|\d+\.-))")
+
+
+def separar_incisos(texto):
+    """Deja una línea en blanco entre los incisos de un artículo.
+
+    Solo inserta saltos de línea. Ninguna palabra del texto legal
+    cambia, y eso se puede comprobar comparando el contenido sin
+    espacios de antes y de después.
+    """
+    return SEPARA_INCISOS.sub("\n\n", texto)
+
 
 def preparar_documentos():
     """Devuelve los textos del corpus y un metadato por cada uno.
@@ -127,6 +204,10 @@ def preparar_documentos():
     El metadato lleva el número del artículo. El splitter lo copia a
     cada fragmento que salga de ese texto, así que un fragmento del
     medio de un artículo sigue sabiendo de dónde viene.
+
+    Los incisos salen separados por línea en blanco, para que el
+    splitter corte entre incisos antes que dentro de uno. La cabecera
+    explica por qué.
     """
     textos, metadatos = [], []
 
@@ -139,7 +220,7 @@ def preparar_documentos():
                 "artículos con Art. N., Art. N bis o Artículo N.-, y "
                 "este no calza con ninguna."
             )
-        textos.append(texto)
+        textos.append(separar_incisos(texto))
         metadatos.append({"articulo": calce.group(1).strip()})
 
     return textos, metadatos
@@ -198,7 +279,7 @@ def revisar_fragmentos(fragmentos, textos):
     exigen iguales. En este corpus la de los fragmentos es mayor, y
     eso es lo esperado. La lección lo dice, el solape repite texto a
     propósito cada vez que un documento hay que partirlo, y aquí hay
-    cinco incisos que pasan de 700 y se parten.
+    artículos que pasan del tope y se parten en varios fragmentos.
 
     Lo que sí es señal de alerta es un fragmento vacío o uno
     repetido, y esos dos cortan la indexación.
@@ -256,6 +337,10 @@ def indexar_corpus(textos, metadatos, carpeta, coleccion,
     Recibe la carpeta y la colección como argumentos, igual que la
     receta del Bloque 25, para que indexar otro corpus sea llamarla
     con otros valores y no copiar su cuerpo.
+
+    Al terminar borra los ids que quedaron de una configuración
+    anterior y que esta tanda ya no produce. La cabecera explica por
+    qué hace falta.
     """
     fragmentos = fragmentar(textos, metadatos, tope, solape)
     revisar_fragmentos(fragmentos, textos)
@@ -275,6 +360,15 @@ def indexar_corpus(textos, metadatos, carpeta, coleccion,
         )
     )
     print(f"  indexados {len(fragmentos)} fragmentos en {carpeta}")
+
+    sobrantes = sorted(set(almacen.get()["ids"]) - set(ids))
+    if sobrantes:
+        almacen.delete(ids=sobrantes)
+        print(f"  borrados {len(sobrantes)} fragmentos que habían "
+              "quedado de una configuración anterior")
+        print(f"    {', '.join(sobrantes[:6])}"
+              f"{' y otros' if len(sobrantes) > 6 else ''}")
+
     return almacen
 
 
@@ -324,6 +418,7 @@ if __name__ == "__main__":
     print("El índice")
     print(f"  carpeta     {os.path.abspath(CARPETA_INDICE)}")
     print(f"  colección   {COLECCION}")
+    print(f"  tope {TOPE}, solape {SOLAPE}")
     print()
 
     textos, metadatos = preparar_documentos()

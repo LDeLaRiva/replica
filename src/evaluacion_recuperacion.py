@@ -73,12 +73,15 @@ from indexar_corpus import (
     TOPE,
     cargar_vectorstore,
 )
+from recuperacion import RECUPERADOS
 
 load_dotenv()
 
-# El k que usa la configuración actual del proyecto. Salió de la
-# medición del Bloque 26 y es el que este archivo pone a prueba.
-K_ELEGIDO = 4
+# El k que usa la configuración del proyecto, y que este archivo pone
+# a prueba. Se importa de recuperacion.py en vez de escribirlo de nuevo,
+# porque escrito en dos lugares puede quedar distinto en cada uno y
+# entonces la evaluación mediría un k que la aplicación no usa.
+K_ELEGIDO = RECUPERADOS
 
 # Hasta dónde llega la curva. Recuperar ocho cuesta lo mismo que
 # recuperar cuatro, así que la curva sale gratis.
@@ -394,8 +397,14 @@ def lineas_del_detalle(resultados):
     return lineas
 
 
-def escribir_resultados(ruta, resultados, precision, recall, k):
-    """Deja el registro de la corrida, para comparar con la próxima."""
+def escribir_resultados(ruta, resultados, precision, recall, k,
+                        curva=()):
+    """Deja el registro de la corrida, para comparar con la próxima.
+
+    Guarda también la curva de k. Es lo que justifica el k elegido, y
+    sin ella en el archivo esa decisión no se puede revisar sin
+    volver a correr la evaluación y pagar los embeddings otra vez.
+    """
     with open(ruta, "w", encoding="utf-8") as archivo:
         archivo.write(f"Fecha: {date.today()}\n")
         archivo.write(
@@ -413,6 +422,16 @@ def escribir_resultados(ruta, resultados, precision, recall, k):
             f"\npromedio -> precision: {precision:.3f}  "
             f"recall: {recall:.3f}\n"
         )
+
+        if curva:
+            archivo.write("\ncurva de k, sobre la misma recuperacion\n")
+            archivo.write("  k  precision   recall       F1\n")
+            for valor, p, r, medida in curva:
+                marca = "  <- el elegido" if valor == k else ""
+                archivo.write(
+                    f"{valor:>3}  {p:>9.3f}  {r:>7.3f}  {medida:>7.3f}"
+                    f"{marca}\n"
+                )
 
 
 if __name__ == "__main__":
@@ -475,7 +494,7 @@ if __name__ == "__main__":
         print(f"  {k:>3}  {p:>9.3f}  {r:>7.3f}  {f1(p, r):>6.3f}"
               f"{marca}")
 
-    # Dos lecturas de la misma curva, que no siempre coinciden.
+    # Tres lecturas de la misma curva, que no suelen coincidir.
     #
     # F1 pesa precisión y recall por igual. En este conjunto hay dos
     # preguntas sin respuesta que le restan precisión a todos los k,
@@ -487,26 +506,39 @@ if __name__ == "__main__":
     # precisión baja, porque un fragmento que no llegó no lo
     # compensa ningún prompt. En una consulta laboral eso es una
     # respuesta equivocada sobre dinero que alguien va a cobrar.
+    #
+    # Pero el k elegido no es el del recall máximo, y por eso se
+    # imprime aparte. La regla tiene una segunda parte. No se paga un
+    # recall que solo alcanza preguntas que ya fallaban de la manera
+    # contenida, abstieniéndose en vez de contestar de otra cosa.
+    #
+    # Las dos primeras corridas de este archivo imprimían solo la
+    # primera parte de esa regla, de modo que el texto decía quedarse
+    # con el k del recall mientras el k elegido era otro.
     mejor_recall = max(r for _, _, r, _ in curva)
     k_recall = min(k for k, _, r, _ in curva if r == mejor_recall)
     k_f1 = max(curva, key=lambda fila: fila[3])[0]
 
     print()
-    print("  Las dos lecturas de esta curva")
+    print("  Las tres lecturas de esta curva")
     print()
     print(f"    el recall deja de subir en k={k_recall}, "
           f"en {mejor_recall:.3f}")
     print(f"    F1 llega a su máximo en k={k_f1}")
+    print(f"    el k que usa el proyecto es {K_ELEGIDO}")
+    print()
 
-    if k_recall == k_f1:
-        print()
-        print("    Coinciden, así que ese es el k.")
+    if k_recall == k_f1 == K_ELEGIDO:
+        print("    Las tres coinciden, así que ese es el k.")
     else:
-        print()
-        print("    No coinciden. Este proyecto se queda con el del")
-        print("    recall, porque un fragmento que no llega no lo")
-        print("    compensa ningún prompt, y la lección dice que el")
-        print("    recall bajo es más grave que la precisión baja.")
+        print("    No coinciden, y el elegido no sale de ninguna de")
+        print("    las dos por sí sola. El recall pesa más que la")
+        print("    precisión, porque un fragmento que no llega no lo")
+        print("    compensa ningún prompt. Pero no se paga un recall")
+        print("    que solo alcanza preguntas que ya fallaban")
+        print("    abstieniéndose, que es el fallo contenido.")
+        print("    La cuenta que fija el k está en")
+        print("    docs/limites_bloque28.md")
     print()
 
     print("Las preguntas donde el recall quedó en cero")
@@ -525,5 +557,5 @@ if __name__ == "__main__":
 
     print()
     escribir_resultados(ARCHIVO_RESULTADOS, resultados, precision,
-                        recall, K_ELEGIDO)
+                        recall, K_ELEGIDO, curva)
     print(f"Resultados guardados en {ARCHIVO_RESULTADOS}")

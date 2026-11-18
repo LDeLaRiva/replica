@@ -7,6 +7,50 @@ Las decisiones de diseño están en el encabezado de
 `src/recuperacion.py`. Este documento recoge las corridas que las
 respaldan.
 
+## Actualización del Bloque 28
+
+Tres cosas que esta página documenta cambiaron después, y una de las
+que deja pendientes quedó resuelta por otro camino.
+
+```
+  la plantilla del prompt   paso de dos salidas a tres
+  el k                      paso de 4 a 3
+  el tope del chunking      paso de 700 a 1500, con los incisos
+                            separados por linea en blanco
+```
+
+**Los dos errores legales de la sección 5 ya no se producen.** El del
+artículo 40 bis D está arreglado y verificado, el modelo ahora
+escribe la condición de jornada parcial junto con la regla. El del
+aporte de casa particular no se produce porque ese fragmento ya no se
+recupera para esa consulta, que no es lo mismo que estar arreglado y
+queda dicho así en el documento del 28.
+
+**Los diecinueve caracteres de la sección 6 dejaron de importar.** El
+artículo 40 bis D mide 933 caracteres y con el tope de 1500 cabe
+entero en un fragmento, de modo que su nota de alcance viaja siempre
+con la regla. Eso resuelve también el primer pendiente de la sección
+14, que proponía mover la nota al principio del artículo. No hizo
+falta moverla.
+
+La sección 5 enuncia la causa de los dos errores con una frase que el
+Bloque 28 confirmó y midió.
+
+> El fragmento recuperado trae la regla y no trae la condición que
+> limita su alcance, porque esa condición quedó en otro fragmento o
+> en otro artículo.
+
+Lo que esta página no podía saber es cuántos casos había. El Bloque
+28 los contó, trece fragmentos empezando a media unidad y cuatro de
+ellos con una regla sin su alcance.
+
+El resto de esta página sigue valiendo. Las distancias de la sección
+3, el análisis de la sección 4 sobre por qué la regla general queda
+cuarta, la abstención a dos distancias, el choque de corchetes y la
+verificación manual de la cita no cambiaron.
+
+Lo nuevo está en `docs/limites_bloque28.md`.
+
 ---
 
 ## 1. Qué se corrió

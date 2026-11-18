@@ -53,18 +53,29 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from indexar_corpus import (
     ETIQUETA,
-    SOLAPE,
-    TOPE,
     cargar_vectorstore,
     fragmentar,
     hay_algo_en_disco,
     ids_de,
-    preparar_documentos,
 )
-from evaluacion_recuperacion import CASOS, K_ELEGIDO, K_MAX, resolver_etiquetas
+from soporte_corpus_legal import ARTICULOS
+from evaluacion_recuperacion import (
+    CASOS,
+    K_ELEGIDO,
+    K_MAX,
+    resolver_etiquetas,
+)
 
 CARPETA_PRUEBA = "vectorstore_pruebas/"
 COLECCION_PRUEBA = "corpus_con_linea"
+
+# El tope y el solape con que se hizo este experimento, en el
+# Bloque 27. No se importan de indexar_corpus.py a proposito. El
+# proyecto los cambio en el Bloque 28, y con los de hoy este
+# script mediria otra particion y no reproduciria los numeros que
+# quedaron escritos en docs/limites_bloque27.md.
+TOPE_DEL_EXPERIMENTO = 700
+SOLAPE_DEL_EXPERIMENTO = 126
 
 CORTE = re.compile(r"(?<=\.)\s+(?=[A-ZÁÉÍÓÚÑ])")
 MARCADOR = re.compile(r"\[\s*\d+\s*\]")
@@ -80,6 +91,29 @@ CLAVES_PREGUNTA = ("pregunta", "consulta", "texto")
 BASE_PRECISION = 0.203
 BASE_RECALL = 0.821
 BASE_F1 = 0.326
+
+
+def preparar_sin_separar():
+    """Arma el corpus como lo preparaba indexar_corpus en el Bloque 27.
+
+    preparar_documentos separa los incisos con linea en blanco desde
+    el Bloque 28, y eso corre el lugar donde cae el corte. Este
+    experimento se hizo antes de ese cambio, asi que arma los textos
+    como estaban entonces. Llamando al preparar_documentos de hoy
+    daria cuarenta y seis fragmentos en vez de los cuarenta y cinco
+    que quedaron escritos en docs/limites_bloque27.md.
+    """
+    textos, metadatos = [], []
+    for claves, texto in ARTICULOS:
+        calce = ETIQUETA.match(texto)
+        if calce is None:
+            raise ValueError(
+                "No pude leer el numero de articulo del texto que "
+                f"empieza con {texto[:40]!r}."
+            )
+        textos.append(texto)
+        metadatos.append({"articulo": calce.group(1).strip()})
+    return textos, metadatos
 
 
 def normalizar(texto):
@@ -111,7 +145,7 @@ def recortar(frase, tope=CAPA):
 
 
 def partes_de(texto):
-    """Devuelve el rotulo y la primera frase del contenido, los dos copiados."""
+    """Devuelve el rotulo y la primera frase, los dos copiados."""
     limpio = MARCADOR.sub("", texto.strip()).strip()
     encontrada = ETIQUETA.search(limpio)
     if not encontrada:
@@ -243,8 +277,7 @@ def fase_uno():
     print(f"  carpeta de prueba      {CARPETA_PRUEBA}")
     print(f"  coleccion de prueba    {COLECCION_PRUEBA}")
 
-    salida = preparar_documentos()
-    textos, metadatos = salida[0], salida[1]
+    textos, metadatos = preparar_sin_separar()
     articulos = {
         str(dato.get("articulo", "?")): texto
         for texto, dato in zip(textos, metadatos)
@@ -256,7 +289,8 @@ def fase_uno():
 
     lineas, fallas = armar_lineas(articulos)
 
-    crudos = fragmentar(textos, metadatos, TOPE, SOLAPE)
+    crudos = fragmentar(textos, metadatos, TOPE_DEL_EXPERIMENTO,
+                        SOLAPE_DEL_EXPERIMENTO)
     originales = pares_de(crudos)
     ids = list(ids_de(crudos))
 
@@ -264,7 +298,8 @@ def fase_uno():
     for (texto, metadato), identificador in zip(originales, ids):
         etiqueta = str(metadato.get("articulo", "?"))
         linea = lineas.get(etiqueta, "")
-        nuevos.append((f"{linea}\n\n{texto}".strip(), dict(metadato), identificador))
+        nuevos.append((f"{linea}\n\n{texto}".strip(),
+                       dict(metadato), identificador))
 
     print("\n" + "=" * 70)
     print("  LAS ETIQUETAS, RESUELTAS CONTRA LOS FRAGMENTOS SIN LINEA")
@@ -287,7 +322,8 @@ def fase_uno():
     desalineados = []
     for numero, (caso, resuelto) in enumerate(zip(CASOS, resueltos), 1):
         try:
-            if normalizar(pregunta_de(caso)) != normalizar(pregunta_de(resuelto)):
+            if (normalizar(pregunta_de(caso))
+                    != normalizar(pregunta_de(resuelto))):
                 desalineados.append(numero)
         except (KeyError, AttributeError):
             pass
@@ -333,21 +369,25 @@ def fase_uno():
         if not se_nombra(texto, metadato.get("articulo", "?"))
     ]
     print(f"\n  Fragmentos en total                      {len(originales)}")
-    print(f"  Fragmentos que nombran a su articulo     {len(originales) - len(huerfanos)}")
+    nombrados = len(originales) - len(huerfanos)
+    print(f"  Fragmentos que nombran a su articulo     {nombrados}")
     print(f"  Fragmentos que no lo nombran             {len(huerfanos)}")
     if originales:
         print(f"  Proporcion sin identificar               "
               f"{len(huerfanos) / len(originales):.0%}")
     print("\n  Esa es la medida del problema que la linea intenta arreglar.")
     print("  El rotulo del articulo vive en su propia linea, y el tope de")
-    print(f"  {TOPE} lo deja solo en el primer fragmento de cada articulo.")
+    print(f"  {TOPE_DEL_EXPERIMENTO} lo deja solo en el primer "
+          "fragmento de cada articulo.")
 
     crecimientos = [
-        len(nuevo[0]) / len(viejo[0]) for nuevo, viejo in zip(nuevos, originales)
+        len(nuevo[0]) / len(viejo[0])
+        for nuevo, viejo in zip(nuevos, originales)
     ]
     print(f"\n  Los fragmentos crecen entre {min(crecimientos):.0%} y "
           f"{max(crecimientos):.0%} de su largo original.")
-    print(f"  Siguen siendo {len(nuevos)}, el corte de {TOPE} no cambio.")
+    print(f"  Siguen siendo {len(nuevos)}, el corte de "
+          f"{TOPE_DEL_EXPERIMENTO} no cambio.")
     print("\n  Las guardas pasaron. Se puede medir.")
     return nuevos, etiquetados
 
@@ -393,7 +433,8 @@ def recuperar(almacen, nuevos):
         if normalizar(almacenados.get(identificador, "")) != normalizar(texto)
     )
     if len(almacenados) != len(esperados) or distintos:
-        print("\n  PROBLEMA, lo indexado no es lo que acaba de armar la fase 1.")
+        print("\n  PROBLEMA, lo indexado no es lo que acaba de")
+        print("  armar la fase 1.")
         print(f"      en disco {len(almacenados)}, esperados {len(esperados)}")
         if distintos:
             print(f"      textos distintos   {', '.join(distintos[:6])}")
@@ -458,7 +499,8 @@ def medir(traidos, etiquetados):
     print("  " + "-" * 46)
     print(f"  {'sin linea':<14}{BASE_PRECISION:>12.3f}{BASE_RECALL:>10.3f}"
           f"{BASE_F1:>10.3f}")
-    print(f"  {'con linea':<14}{precision:>12.3f}{recall:>10.3f}{medida:>10.3f}")
+    print(f"  {'con linea':<14}{precision:>12.3f}"
+          f"{recall:>10.3f}{medida:>10.3f}")
     print(f"  {'diferencia':<14}{precision - BASE_PRECISION:>+12.3f}"
           f"{recall - BASE_RECALL:>+10.3f}{medida - BASE_F1:>+10.3f}")
 
@@ -467,7 +509,8 @@ def medir(traidos, etiquetados):
     print("=" * 70)
     print(f"\n  {'#':>3}  {'recall':>9}  pregunta")
     print("  " + "-" * 66)
-    for numero, (caso, uno, otros) in enumerate(zip(CASOS, traidos, etiquetados), 1):
+    for numero, (caso, uno, otros) in enumerate(
+            zip(CASOS, traidos, etiquetados), 1):
         valor = recall_en_k(uno, otros, K_ELEGIDO)
         texto = "sin resp." if valor is None else f"{valor:.2f}"
         print(f"  {numero:>3}  {texto:>9}  {pregunta_de(caso)[:54]}")
@@ -476,7 +519,8 @@ def medir(traidos, etiquetados):
     print("  LAS QUE SIGUEN FALLANDO")
     print("=" * 70)
     quedan = False
-    for numero, (caso, uno, otros) in enumerate(zip(CASOS, traidos, etiquetados), 1):
+    for numero, (caso, uno, otros) in enumerate(
+            zip(CASOS, traidos, etiquetados), 1):
         valor = recall_en_k(uno, otros, K_ELEGIDO)
         if valor is None or valor >= 1.0:
             continue
@@ -490,7 +534,8 @@ def medir(traidos, etiquetados):
             f"{faltante} en {uno.index(faltante) + 1}"
             for faltante in perdidos if faltante in uno
         ]
-        print(f"      donde quedaron {', '.join(posiciones) or 'fuera del top 8'}")
+        donde = ", ".join(posiciones) or "fuera del top 8"
+        print(f"      donde quedaron {donde}")
     if not quedan:
         print("\n  Ninguna. Todas las que tienen respuesta llegaron a 1.00.")
     print()
@@ -507,7 +552,8 @@ def main():
 
     if "--usar-indice" in sys.argv:
         almacen = cargar_vectorstore(CARPETA_PRUEBA, COLECCION_PRUEBA)
-        print(f"\n  Usando la coleccion {COLECCION_PRUEBA} que ya esta en disco.")
+        print(f"\n  Usando la coleccion {COLECCION_PRUEBA},")
+        print("  que ya esta en disco.")
     else:
         almacen = indexar(nuevos)
     if almacen is None:

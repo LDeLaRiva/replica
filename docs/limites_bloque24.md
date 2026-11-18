@@ -13,6 +13,49 @@ Las dos corridas del agente que se citan más abajo son del mismo
 día, a las 21:57 y a las 21:58. Modelo el configurado en `AI_MODEL`,
 sin cambios en el `.env` durante la serie.
 
+## Actualización del Bloque 28
+
+El tope de 700 y el solape de 126 que esta página justifica **ya no
+son los del proyecto**. Desde el Bloque 28 son 1500 y 270, y los
+incisos se separan con línea en blanco antes de partir.
+
+Esta página se deja como estaba, porque es el registro de lo que se
+midió entonces y esa medición sigue siendo correcta para lo que
+medía. Lo que cambió es qué se mide.
+
+```
+  lo que midio esta pagina    como queda partido el corpus
+  lo que midio el Bloque 28   si la regla llega con su condicion
+```
+
+La sección 1 ya describía el mecanismo exacto que el Bloque 28
+terminó cambiando.
+
+> Los incisos están separados por un salto de línea simple y nunca
+> por uno doble... El doble no encuentra nada en este corpus y el
+> corte cae en el salto de línea simple.
+
+Estaba bien observado y no se vio como problema, porque la medición
+de entonces no preguntaba si un fragmento llegaba separado de la
+condición que lo limita. El Bloque 28 preguntó eso y midió que trece
+de los cuarenta y cinco fragmentos empezaban a media unidad, cuatro
+de ellos con una regla sin su alcance.
+
+La sección 13 anticipó el cambio y nombró los dos lugares a tocar.
+
+> el valor cambia en dos lugares a la vez, en
+> `src/indexar_corpus.py` y en la constante de muestra de
+> `src/medir_chunks.py`.
+
+El primero cambió. **El segundo no se tocó, a propósito.**
+`medir_chunks.py` es la evidencia de la decisión de entonces y tiene
+que seguir reproduciendo la tabla de la sección 2. Lo mismo se hizo
+con el experimento del Bloque 27.
+
+La medición nueva, la comparación de las dos configuraciones y las
+referencias de la práctica publicada en textos legales están en
+`docs/limites_bloque28.md`.
+
 ---
 
 ## 1. El corpus que se indexa

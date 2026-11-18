@@ -5,6 +5,62 @@ documentado en la cabecera de `src/evaluacion_recuperacion.py`. Lo que
 sigue son los hallazgos medidos, las decisiones que tomamos con ellos y
 lo que quedó sin resolver.
 
+## Actualización del Bloque 28
+
+Los números de esta página son los de la configuración de entonces,
+tope 700 y k=4. **El proyecto cambió los dos en el Bloque 28.**
+
+```
+                      precision   recall      F1
+  ------------------------------------------------
+  esta pagina             0.203    0.821   0.326
+  despues del 28          0.271    0.857   0.412
+```
+
+La medición de esta página no está equivocada. Midió lo que había, y
+la comparación entre las dos configuraciones existe porque estos
+números quedaron escritos.
+
+**El k pasó a 3**, con la misma cuenta de la sección 5. Subir de 3 a
+4 con la partición nueva compra media pregunta de catorce, y esa
+media pregunta vuelve a ser la #15, la que falla abstieniéndose.
+
+**La sección 4 tenía un error en lo que imprimía el script.** Decía
+quedarse con el k del recall mientras el k elegido era otro. La regla
+real tiene dos partes y solo se escribía la primera. El script quedó
+corregido y ahora imprime las tres lecturas, la del recall, la del F1
+y la del k del proyecto.
+
+### Qué pasó con los pendientes de la sección 16
+
+```
+  1  la pregunta 11       sigue fallando en la recuperacion, pero
+                          dejo de ser peligrosa. El modelo ahora
+                          nombra lo que no puede responder
+  2  apretar la abstencion  cubierto en parte por la plantilla de
+                          tres salidas
+  3  el empate            sigue abierto
+  4  la linea de contexto sigue abierto
+  5  guardar la curva     RESUELTO, el archivo de resultados la
+                          guarda
+  6  mover la nota del    RESUELTO por otro camino, el articulo
+     40 bis D             cabe entero con el tope de 1500
+  7  otros articulos con  MEDIDO, trece fragmentos empiezan a
+     el mismo problema    media unidad, cuatro con una regla sin
+                          su alcance
+  8  el hueco de          sigue abierto
+     --verificar
+  9  migrar a .md         sigue abierto
+```
+
+El experimento de la línea de contexto de las secciones 9 a 13 sigue
+valiendo tal como está. `src/probar_linea_contexto.py` quedó fijado
+en el tope 700, el solape 126 y el texto sin separar incisos, para
+que siga reproduciendo los 45 fragmentos, los 34 sin identificar y el
+379% de crecimiento que esta página documenta.
+
+Lo demás está en `docs/limites_bloque28.md`.
+
 ---
 
 ## 1. Qué se corrió
@@ -557,7 +613,6 @@ tener que tolerar las dos formas. Las dos las cubre la `ETIQUETA` de
    también, porque es lo que justifica el k elegido y hoy hay que volver
    a correr el script, con su costo, para recuperarla.
 **Que vienen del Bloque 26 y siguen abiertos.**
-
 6. Mover la nota de alcance del artículo 40 bis D al principio, donde
    todos sus fragmentos la lleven, en vez del final, donde el corte la
    deja afuera.
