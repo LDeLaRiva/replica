@@ -95,8 +95,8 @@ Por qué el registro guarda el tope y el solape
 El registro de la lección guarda el k y no guarda la partición. Con
 el k solo no se distingue una corrida de otra cuando la partición
 cambió, y este proyecto cambió la suya en el Bloque 28, de
-fragmentos de cuatrocientos setenta caracteres a fragmentos de mil
-noventa.
+fragmentos de cuatrocientos setenta caracteres a fragmentos de
+novecientos treinta.
 
 La lección advierte que este archivo no debe mezclar corridas sin
 poder distinguirlas, porque es para comparar en el futuro. Con el
@@ -356,8 +356,13 @@ if __name__ == "__main__":
             print("  NO crecieron, que es lo contrario de lo esperado.")
             print("  Revisa que las dos corridas sean la misma pregunta")
 
-    # La tercera. La generación tiene que ser la etapa más lenta en
-    # todas las corridas, no solo en promedio.
+    # La tercera. La generación suele ser la etapa más lenta en todas
+    # las corridas y no solo en promedio, pero tiene una excepción
+    # conocida. El embed y la búsqueda rondan el segundo y son casi
+    # constantes, y la generación depende de cuánto escribe el
+    # modelo, así que una respuesta muy corta da vuelta el orden.
+    # Cuando eso pasa, abajo se imprime cuál corrida fue y con
+    # cuántos tokens de salida.
     siempre_mas_lenta = all(
         registro["tiempos_ms"]["generacion"]
         > registro["tiempos_ms"]["embed_y_busqueda"]
@@ -367,9 +372,26 @@ if __name__ == "__main__":
         print("  la generación fue la etapa más lenta en las "
               f"{len(registros)} corridas")
     else:
-        print("  la generación NO fue la más lenta en todas. Mira el")
-        print("  detalle de abajo, porque la reconexión al índice de la")
-        print("  primera corrida puede explicarlo")
+        volteadas = []
+        for numero, registro in enumerate(registros, start=1):
+            if (registro["tiempos_ms"]["generacion"]
+                    > registro["tiempos_ms"]["embed_y_busqueda"]):
+                continue
+            # Los tokens pueden venir vacíos si la API no manda su
+            # metadato, igual que en la comprobación de arriba.
+            salida = (registro["tokens"] or {}).get("output_tokens")
+            volteadas.append((numero, salida))
+
+        print("  la generación NO fue la más lenta en todas")
+        for numero, salida in volteadas:
+            if salida is None:
+                print(f"  la corrida {numero}, sin tokens de salida "
+                      "en la respuesta de la API")
+            else:
+                print(f"  la corrida {numero} devolvió {salida} "
+                      "tokens de salida")
+        print("  el embed y la búsqueda son casi constantes, así que")
+        print("  el orden se da vuelta cuando la respuesta es corta")
 
     print()
     print("=" * 68)
