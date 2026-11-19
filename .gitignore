@@ -163,6 +163,7 @@ venv.bak/
 .env/
 vectorstore/
 vectorstore_pruebas/
+vectorstore_topes/
 
 #modulos personales o de pruebas
 src/peticiones.py
@@ -239,3 +240,7 @@ __marimo__/
 
 # Local DB
 /chroma_db/
+
+vectorstore_topes/
+
+trabajo/

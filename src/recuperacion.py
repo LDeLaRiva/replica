@@ -79,13 +79,50 @@ Ahora son tres. Si el contexto cubre todo, el modelo responde. Si
 cubre una parte, responde esa parte y dice cuál no puede responder
 con ese contexto. Si no cubre nada, la frase exacta.
 
-Las dos consultas de fuera del corpus siguen recibiendo la frase
-exacta, que es lo que la actividad del Bloque 26 exige, y eso se
-midió al cambiar la plantilla y no se dio por hecho.
-
 Para una consulta laboral la salida del medio importa más que en otro
 dominio. Callarse entero deja a la persona sin nada que sí estaba en
 la ley, y media respuesta sin avisar la deja creyendo que tiene todo.
+
+Por qué las tres salidas van enumeradas y la frase va sin comillas
+
+La primera versión de la plantilla de tres salidas escribía las tres
+instrucciones como párrafos corridos y ponía la frase entre comillas.
+Con esa forma, la consulta del acoso devolvía la tercera instrucción
+en vez de la frase, convertida en afirmación.
+
+    El contexto no responde ninguna parte de la pregunta, responde
+    exactamente esta frase y nada mas: "El contexto disponible no
+    alcanza para responder esta consulta."
+
+Ciento sesenta y cuatro caracteres donde la frase sola mide sesenta y
+tres. La comprobación en código no lo detectaba, porque busca la
+frase dentro de la respuesta y la frase está dentro.
+
+Se midió de dónde venía. Quitando la salida del medio la filtración
+desaparece, con el mismo contexto, pero eso devolvería el problema
+que la salida del medio arregló. Así que el párrafo se queda y lo que
+cambió es la forma.
+
+Se compararon cinco redacciones sobre el mismo contexto, la de
+entonces como línea base y cuatro variantes. Reescribir la tercera
+instrucción no sirvió, el modelo copió la redacción nueva igual, y
+eso pasó con las dos redacciones que se probaron. Lo que sirvió fue
+cambiar la estructura. Dejaron de filtrar dos variantes, enumerar las
+tres salidas y mover las instrucciones después del contexto. Se tomó
+la primera porque cambia menos el orden del prompt.
+
+La enumerada se validó con el criterio del Bloque 26. Cero
+filtraciones en nueve corridas de la consulta del acoso, contra una
+base que filtra cerca de la mitad de las veces, y los tres controles
+aguantan, la pregunta compuesta responde, las de fuera del corpus se
+abstienen con la frase limpia y la consulta del Bloque 26 responde
+citando.
+
+Las dos mediciones están en la sección 8 del
+docs/limites_bloque28.md, con sus tablas.
+
+La frase va sin comillas porque el modelo las copiaba, y una
+respuesta entrecomillada deja de ser igual a SIN_CONTEXTO.
 
 Por qué las citas se traducen de vuelta, y con dos expresiones
 
@@ -118,11 +155,34 @@ lo mismo. Medido sobre las dieciséis preguntas del conjunto de
 evaluación, el 3 supera a la configuración anterior en las tres
 medidas a la vez, precisión, recall y F1.
 
-Subir al 4 agregaría media pregunta de catorce y costaría un catorce
-por ciento más por consulta, y esa media pregunta es la que ya
-fallaba de la manera contenida, abstieniéndose en vez de contestar de
-otra cosa. Es la misma cuenta que dejó el k en 4 en el Bloque 27 y
-que ahora lo deja en 3.
+Subir al 4 agregaría media pregunta de catorce, y esa media pregunta
+es la que ya fallaba de la manera contenida, abstieniéndose en vez de
+contestar de otra cosa. Es la misma cuenta que dejó el k en 4 en el
+Bloque 27 y que ahora lo deja en 3.
+
+Lo que cuesta, con los tokens medidos al tope 1300. Cada fragmento
+extra agrega unos 305 tokens de entrada, así que sobre la pregunta
+del medio la entrada sube un treinta y ocho por ciento y el costo
+total un diecisiete, dejando la salida igual. La versión anterior de
+esta cabecera decía un catorce por ciento, que venía de la proyección
+hecha al tope 1500 y no de los tokens medidos.
+
+Bajar al 1 es la pregunta que queda, porque el F1 tiene su máximo
+ahí. Con el tope de 1300 el k=1 mejoró, de 0.643 a 0.786 de recall, y
+la distancia contra el k=3 se angostó a una pregunta de catorce. El
+recall promedio ya no alcanza para defender la decisión.
+
+Lo que la defiende es el mismo límite legal que fijó el tope. En la
+consulta del cálculo los tres fragmentos llegan en este orden,
+artículo 163, artículo 40 bis D y artículo 172. El tope de noventa
+unidades de fomento vive en el artículo 172, que llega tercero, así
+que con k=1 o con k=2 no llega. El 3 es el mínimo que lo trae, y se
+ve en la corrida de src/probar_generacion.py, donde la respuesta cita
+ese límite con la fuente [3].
+
+El tope y el k quedan entonces fijados por la misma condición. El
+tope de 1300 para que el artículo 172 quepa entero en un fragmento, y
+el k de 3 para que ese fragmento llegue.
 
 Las tablas están en docs/limites_bloque28.md.
 
@@ -178,16 +238,21 @@ SIN_CONTEXTO = (
 MARCA_CONTEXTO = "Contexto:\n"
 
 PROMPT_TEMPLATE = """\
-Responde la pregunta usando SOLO el contexto de abajo. Cita la \
-fuente de cada afirmacion con su numero entre corchetes, como [1].
+Tienes tres formas de responder y eliges una sola.
 
-Si el contexto responde solo una parte de la pregunta, responde esa parte y \
-despues di con claridad que parte no se puede responder con este contexto.
+1. Si el contexto responde toda la pregunta, respondela usando SOLO \
+el contexto. Cita la fuente de cada afirmacion con su numero entre \
+corchetes, como [1].
 
-Si el contexto no responde ninguna parte de la pregunta, responde exactamente \
-esta frase y nada mas.
+2. Si el contexto responde una parte, responde esa parte citando \
+igual, y despues di con claridad que parte no se puede responder con \
+este contexto.
 
-\"""" + SIN_CONTEXTO + """\"
+3. Si el contexto no responde ninguna parte, tu respuesta completa \
+es la linea siguiente, copiada tal cual y sin explicar nada antes ni \
+despues.
+
+""" + SIN_CONTEXTO + """
 
 """ + MARCA_CONTEXTO + """{contexto}
 

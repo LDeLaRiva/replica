@@ -2,7 +2,7 @@
 
 Respalda las dos decisiones de indexación que se tomaron en el Bloque
 28. Separar los incisos con línea en blanco, y subir el tope de
-setecientos a mil quinientos.
+setecientos a mil trescientos.
 
 Qué problema mide. El corpus separa sus incisos con un salto de línea,
 igual que separa las letras a) y b) de adentro de un inciso. El
@@ -20,8 +20,15 @@ fragmentos empiezan a media unidad con cada configuración, y cuáles
 son.
 
 De ahí sale el criterio del tope. No es un número elegido, es que el
-tope tiene que superar a la unidad estructural más larga del corpus.
-Cuando el corpus crezca se vuelve a correr esto y se ajusta.
+tope no puede quedar por debajo de la unidad estructural más larga
+del corpus. La más larga mide 1057 caracteres y la medición muestra
+que desde 1057 las cuarenta y nueve unidades caben enteras, así que
+el piso es ese valor y no uno más. Cuando el corpus crezca se vuelve
+a correr esto y se ajusta.
+
+El piso es un piso y no el valor entregado. Cuál de los topes por
+encima del piso se adopta se decide con otras cuatro mediciones, y
+está en la cabecera de indexar_corpus.py.
 
 Lo que midió esta medición está escrito en docs/limites_bloque28.md,
 junto con las referencias de la práctica publicada en textos legales.
@@ -54,7 +61,11 @@ from soporte_corpus_legal import ARTICULOS
 INICIO_LIMPIO = re.compile(r"^(?:\[\d+\]|Art\.|Artículo|\d+\.-)")
 
 # Los topes que se compararon. El de hoy va marcado al imprimir.
-TOPES = (700, 1000, 1500, 2000)
+# El 1057 está en la lista porque es el piso exacto, el valor donde
+# las cuarenta y nueve unidades empiezan a caber enteras. Es el
+# número en que se apoya todo el criterio del tope, así que la
+# medición lo muestra en vez de dejarlo entre el 1000 y el 1100.
+TOPES = (700, 1000, 1056, 1057, 1100, 1300, 1500, 2000)
 
 # La proporción de solape, la misma que usaba la configuración
 # anterior y la que usa la de ahora.

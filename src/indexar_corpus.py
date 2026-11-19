@@ -72,6 +72,10 @@ colección y no están en la tanda que acaba de escribir. Borra después
 y no antes para que un fallo a mitad de camino no deje el índice
 vacío.
 
+El cambio posterior de 1500 a 1300 sube de diecinueve fragmentos a
+veintidós, así que no deja ninguno sobrante. El borrado se queda
+igual, porque el caso puede volver cada vez que el tope suba.
+
 Por qué los incisos se separan con línea en blanco antes de partir
 
 El corpus separa sus incisos con un salto de línea, igual que separa
@@ -96,29 +100,126 @@ verificado contra la fuente y esta es una decisión de indexación, no
 del texto. Lo único que se inserta son saltos de línea, así que el
 contenido sin espacios queda idéntico y eso se puede comprobar.
 
-Por qué el tope es 1500 y el solape 270
+Por qué el tope es 1300 y el solape 234
 
-La unidad estructural más larga de este corpus mide 1057 caracteres.
-El tope tiene que superarla para que ningún inciso se parta por
-dentro, y con 1500 no queda ningún fragmento empezado a media
-oración.
+El criterio estructural da un piso y no un valor. La unidad legal más
+larga de este corpus mide 1057 caracteres, y medido con una grilla
+fina el piso es ese mismo valor y no uno más, porque en 1056 se parte
+una unidad y en 1057 no se parte ninguna. Por encima del piso ninguna
+unidad se parte por dentro, y lo único que el tope decide es cuántas
+unidades enteras se empaquetan en un mismo fragmento.
 
-La regla no es el número, es el criterio. El tope tiene que ser mayor
-que la unidad estructural más larga del corpus. Cuando el corpus
-crezca y entre un inciso más largo, se vuelve a medir y se sube.
+El piso tiene dos razones medidas y no una.
 
-El solape queda en el dieciocho por ciento del tope, la misma
-proporción que usaba la configuración anterior.
+La primera es de estructura. Una unidad partida por dentro puede
+entregar una regla sin la condición que la limita, que es lo que
+produjo las dos respuestas legalmente equivocadas de la sección 5 del
+docs/limites_bloque26.md.
 
-El tope anterior era 700 y el solape 126, medidos en el Bloque 24
-sobre la longitud de los incisos y sin la separación por línea en
-blanco. La comparación de las dos configuraciones, con la curva de k
-y el costo por consulta de cada una, está en docs/limites_bloque28.md.
+La segunda es de recuperación. Una unidad partida se recupera peor
+que la unidad entera, porque el embedding representa lo que hay en
+ese pedazo. El inciso 1 del artículo 172 mide 779 caracteres, con
+tope 700 se parte y no alcanza el top 3 de la consulta del cálculo.
+Con cualquier tope por encima del piso cabe entero y sí lo alcanza.
 
-Es además lo que la práctica publicada hace con textos legales,
-partir primero por el límite legal y recurrir a la partición
-recursiva solo adentro de la unidad. Las referencias están en el
-documento del Bloque 28.
+Por encima del piso la partición no cambia de a un carácter sino por
+tramos. Se barrió el tope de uno en uno desde el piso hasta 1600, y
+los tramos largos son 1071 a 1153 con treinta fragmentos, 1172 a 1220
+con veintisiete, 1229 a 1273 con veinticuatro, 1293 a 1351 con
+veintidós y 1447 a 1600 con diecinueve. El conteo no es estrictamente
+decreciente, porque en 1070 baja a veintinueve y en 1071 vuelve a
+treinta.
+
+Cuál tramo se toma se decidió midiendo cuatro cosas.
+
+    el recall es plano arriba del piso, 0.857 en 1100, 1250 y
+    1500, y fallan las mismas tres preguntas
+
+    el costo de la entrada baja cuando baja el tope, 0.87x,
+    0.91x y 1.00x
+
+    el primer fragmento es relevante en doce preguntas de
+    dieciseis con 1300 y en diez con 1500
+
+    el tope de noventa unidades de fomento del artículo 172
+    solo viaja junto a la base de cálculo desde 1293
+
+La última es la que decide. El artículo 172 con sus incisos separados
+mide 1293 caracteres, su base de cálculo vive en el primer inciso y
+su tope de noventa unidades de fomento en el tercero. Por debajo de
+1293 el artículo no cabe entero, ese tercer inciso queda en otro
+fragmento y la consulta del cálculo recupera la base sin el tope. Es
+un límite legal real sobre lo que se paga.
+
+Y 1293 es justo donde empieza el tramo de veintidós fragmentos. El
+conteo baja a veintidós porque ese artículo pasa a caber en un
+fragmento, así que la frontera del tramo y el largo del artículo son
+el mismo número.
+
+El valor entregado no es más fino que eso. Comparando fragmento por
+fragmento, desde 1293 hasta 1345 la partición es idéntica, no solo en
+cantidad sino en contenido, de modo que cincuenta y tres valores de
+tope producen exactamente los mismos veintidós fragmentos. Lo que se
+midió es la banda, y 1300 es un número redondo adentro. Con 1294 o
+con 1330 el sistema sería el mismo.
+
+Las tablas están en docs/limites_bloque28.md, y los scripts que las
+produjeron son src/medir_incisos.py y src/comparar_topes.py.
+
+Dos de esas cuatro condiciones quedaron confirmadas después por
+corridas que no son las que eligieron el tope. La tercera sale igual
+de src/resultados_evaluacion.txt, donde la precisión con k=1 vale
+0.750 sobre dieciséis preguntas, que son doce. La cuarta se ve
+entera en la corrida de src/probar_generacion.py, donde la respuesta
+de la consulta del cálculo cita el tope de noventa unidades de
+fomento. No es que el fragmento llegue, es que el límite aparece en
+la respuesta.
+
+Esto queda fuera de lo que la lección sugiere
+
+La lección del Bloque 24 habla de unos pocos cientos de caracteres
+con un overlap del quince al veinte por ciento, y la actividad no
+impone un chunk_size y pide elegirlo con criterio. La sección 7 del
+docs/limites_bloque24.md usó esa sugerencia como argumento para
+descartar el tope de 1000.
+
+Este corpus no permite quedarse en ese rango. Su unidad legal más
+larga mide 1057 caracteres y partirla por dentro produce los dos
+errores de arriba. De las mesetas por encima del piso se toma la que
+cumple las cuatro condiciones, que es la menor desviación posible que
+sirve.
+
+El solape sí queda dentro de lo sugerido, en el dieciocho por ciento,
+la misma proporción del Bloque 24. Con este tope no hace nada, y eso
+está medido. Ningún par de fragmentos consecutivos comparte un solo
+carácter. Con tope 700 se repiten 605 caracteres, con 1500 se repiten
+248 y con 1300 se repiten cero.
+
+El splitter arrastra solape solo si lo que queda al cerrar un
+fragmento cabe en los 234 caracteres del presupuesto, y en este tope
+la unidad del borde siempre es más larga que eso. No es un defecto,
+es una consecuencia del piso. El solape existe para que un concepto
+cortado sobreviva en los dos pedazos, y por encima del piso no se
+corta nada. Queda definido por la proporción del Bloque 24 para que
+lo fije la misma regla, y vuelve a servir solo si alguna unidad
+llegara a superar el tope, que es el caso del procedimiento de abajo.
+
+Qué hacer cuando el corpus cambie
+
+Este procedimiento es propio. Ni la plataforma ni los dos trabajos
+citados en el documento del Bloque 28 lo prescriben, y existe porque
+esta implementación hace que el tope decida la integridad de la
+unidad.
+
+Agregar o editar un artículo puede alargar la unidad más larga, así
+que hay que volver a correr src/medir_incisos.py y subir el tope si
+el piso se movió. Sacar un artículo no puede romper el piso, pero
+puede dejar el tope más alto de lo necesario, y eso cuesta sin dar
+nada.
+
+Cortando por estructura de forma explícita, como hacen los dos
+trabajos citados, el tope dejaría de decidir la integridad y este
+procedimiento sobraría. Queda anotado como pendiente.
 
 Por qué la carpeta y la colección son constantes
 
@@ -147,7 +248,7 @@ que podía repetir un envío irreversible.
 
 Lo que la guía no dice es el costo. from_documents no guarda un
 progreso parcial, de modo que un reintento vuelve a pagar los
-fragmentos que ya habían entrado. Con este corpus son diecinueve y el
+fragmentos que ya habían entrado. Con este corpus son veintidós y el
 429 es improbable, así que se acepta. Con un corpus grande convendría
 indexar por lotes, que los ids explícitos ya permiten.
 """
@@ -170,8 +271,8 @@ load_dotenv()
 
 CARPETA_INDICE = "vectorstore/"
 COLECCION = "corpus_legal_chile"
-TOPE = 1500
-SOLAPE = 270
+TOPE = 1300
+SOLAPE = 234
 MODELO_EMBEDDINGS = "models/gemini-embedding-001"
 
 # Reconoce "Art. 162.", "Art. 40 bis D." y "[1] Artículo 66.-", que

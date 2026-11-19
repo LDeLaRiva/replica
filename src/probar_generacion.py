@@ -24,19 +24,39 @@ mismo que correcto. Por eso la respuesta se imprime completa.
 
 Los controles. La consulta de fuera del corpus tiene que recibir la
 frase de abstención, que es un criterio del Bloque 26. La pregunta
-compuesta y la del acoso tienen que seguir respondiendo, porque la
-plantilla de tres salidas del Bloque 28 las arregló y no se pueden
-perder al cambiar la partición.
+compuesta y la del acoso tienen que seguir respondiendo, y cada una
+se arregló por un camino distinto.
 
-La del acoso está aquí por una razón concreta. Una corrida de
-registro_rag.py la mostró con diez tokens de salida, que es el largo
-de la frase de abstención, y en la verificación anterior esa pregunta
-no se había probado contra la partición nueva.
+La compuesta la arregló la plantilla de tres salidas. Con dos salidas
+se abstenía entera, cuatro corridas de cuatro.
+
+La del acoso la arregló el tope, y eso se pudo separar. Una corrida
+de registro_rag.py la mostró con diez tokens de salida, que es el
+largo de la frase de abstención. Con la plantilla nueva y el índice
+del tope 1500 seguía dando diez. Con el tope de 1300 pasó a
+responder. La tabla de los tres estados está en la sección 14 del
+docs/limites_bloque28.md, y el mecanismo es el ruido por fragmento,
+que esa misma sección había propuesto antes de poder medirlo.
+
+Por eso las dos están en esta lista, y por eso la del acoso es la que
+primero se rompe si la partición vuelve a cambiar.
+
+La compuesta se agregó al elegir el tope de 1300. Hasta entonces el
+chequeo de alcance nunca la había tocado, porque probaba la consulta
+del cálculo, que está escrita de otra manera. Al correrla salió que
+la regla del artículo 40 bis D llega sin su condición en una corrida
+de tres, con esta plantilla y con la anterior. Es un error
+preexistente y de generación, no de recuperación, porque la
+condición sí llega al contexto. Queda anotado como pendiente en la
+sección 18 del docs/limites_bloque28.md.
+
+De ahí sale una advertencia sobre este mismo archivo. Lo que no está
+en CASOS no se revisa, y durante dos bloques esta consulta no estuvo.
 
 Apunta a la colección de producción, no a una de prueba, porque lo
 que hay que verificar es lo que se entrega.
 
-Qué cuesta. Cuatro generaciones y sus embeddings.
+Qué cuesta. Cinco generaciones y sus embeddings.
 """
 
 import os
@@ -84,6 +104,10 @@ CASOS = (
     ("la que sigue pendiente, la #11",
      "me despidieron por necesidades de la empresa, "
      "¿a qué tengo derecho?",
+     False),
+    ("la compuesta, donde la regla se suelta",
+     "¿en qué consiste la indemnización por años de servicio y "
+     "qué incluye?",
      False),
 )
 

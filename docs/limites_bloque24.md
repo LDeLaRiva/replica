@@ -16,7 +16,7 @@ sin cambios en el `.env` durante la serie.
 ## Actualización del Bloque 28
 
 El tope de 700 y el solape de 126 que esta página justifica **ya no
-son los del proyecto**. Desde el Bloque 28 son 1500 y 270, y los
+son los del proyecto**. Desde el Bloque 28 son 1300 y 234, y los
 incisos se separan con línea en blanco antes de partir.
 
 Esta página se deja como estaba, porque es el registro de lo que se
@@ -52,7 +52,38 @@ El primero cambió. **El segundo no se tocó, a propósito.**
 que seguir reproduciendo la tabla de la sección 2. Lo mismo se hizo
 con el experimento del Bloque 27.
 
-La medición nueva, la comparación de las dos configuraciones y las
+### Dos secciones de esta página que el Bloque 28 alcanzó
+
+**La sección 7 tenía un argumento que quedó superado.** Decía que el
+tope de 1000 queda fuera de lo que la lección sugiere, que habla de
+unos pocos cientos de caracteres, y ella misma aclaraba que esa frase
+es vaga y que el argumento solo acompañaba al que decide, el sesenta
+por ciento de mezcla.
+
+Esa aclaración resultó importante. El Bloque 28 adoptó 1300, que está
+bastante más afuera de ese rango que el 1000 que esta página
+descartó, y lo justificó con una propiedad del texto y no con las
+preguntas. La unidad legal más larga del corpus mide 1057 caracteres,
+y partirla por dentro entrega reglas sin su condición. La
+justificación completa está en la sección 11 del
+`docs/limites_bloque28.md`.
+
+Dicho de otra forma, de los dos argumentos de la sección 7 el que
+decidía sigue en pie y el que acompañaba dejó de servir, porque el
+proyecto terminó tomando un valor que ese argumento también habría
+descartado.
+
+**La sección 8 tenía una afirmación que quedó medida.** Decía que el
+overlap solo sirve cuando el partidor tiene que cortar algo por la
+mitad, y que donde un inciso cabe entero no hay nada que rescatar.
+
+El Bloque 28 lo midió fragmento contra fragmento. Con el tope de 1300
+ninguna unidad se parte, y el solape repite **cero caracteres**.
+Ningún par de fragmentos consecutivos comparte texto. La afirmación
+de esta página no solo era correcta, describe exactamente lo que pasa
+con la configuración de ahora.
+
+La medición nueva, la comparación de las configuraciones y las
 referencias de la práctica publicada en textos legales están en
 `docs/limites_bloque28.md`.
 

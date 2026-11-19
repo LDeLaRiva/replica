@@ -37,14 +37,18 @@ y la del k del proyecto.
   1  la pregunta 11       sigue fallando en la recuperacion, pero
                           dejo de ser peligrosa. El modelo ahora
                           nombra lo que no puede responder
-  2  apretar la abstencion  cubierto en parte por la plantilla de
-                          tres salidas
+  2  apretar la abstencion  cubierto. La plantilla de tres
+                          salidas arreglo la pregunta compuesta
+                          y el tope de 1300 arreglo la del
+                          acoso, que respondia a medias y bien
   3  el empate            sigue abierto
   4  la linea de contexto sigue abierto
   5  guardar la curva     RESUELTO, el archivo de resultados la
                           guarda
-  6  mover la nota del    RESUELTO por otro camino, el articulo
-     40 bis D             cabe entero con el tope de 1500
+  6  mover la nota del    SIGUE ABIERTO. Se habia dado por
+     40 bis D             resuelto porque el articulo cabe
+                          entero y la nota viaja con la regla,
+                          y viajar no alcanza. Ver abajo
   7  otros articulos con  MEDIDO, trece fragmentos empiezan a
      el mismo problema    media unidad, cuatro con una regla sin
                           su alcance
@@ -52,6 +56,40 @@ y la del k del proyecto.
      --verificar
   9  migrar a .md         sigue abierto
 ```
+
+### Por qué el pendiente 6 volvió a abrirse
+
+El artículo 40 bis D mide 933 caracteres y cabe entero en un
+fragmento con cualquiera de los topes que se probaron, así que su nota
+de alcance llega al modelo en el mismo fragmento que la regla. Sobre
+eso se había dado el pendiente por resuelto.
+
+Lo que el Bloque 28 midió es que en una consulta compuesta el modelo
+usa la regla y no usa la nota, con la condición presente en el
+contexto. En la misma corrida, en la consulta del cálculo, sí la usa y
+la pone al principio de la frase. La nota viaja y a veces no se lee,
+que no es lo mismo que resuelto.
+
+La hipótesis de ahora es la posición. La nota está al final del
+artículo, y una condición al final se suelta más fácil que una al
+principio. Mover esa nota al comienzo es una decisión de indexación
+del mismo tipo que separar incisos, porque la nota es un agregado
+propio y no texto legal, pero habría que medirlo antes de hacerlo.
+
+### El k de 3 tiene ahora una razón más firme que la cuenta
+
+La cuenta de la sección 5, que compara lo que compra media pregunta
+contra lo que cuesta, sigue siendo la que descarta subir el k. Para no
+bajarlo había quedado el recall promedio, y con el tope de 1300 ese
+argumento se angostó a una pregunta de catorce.
+
+Lo que lo sostiene ahora es el mismo límite legal que fijó el tope. En
+la consulta del cálculo el artículo 172 llega en la tercera posición,
+y ese artículo trae el tope de noventa unidades de fomento. Con k=1 o
+con k=2 no llega. Está en la sección 12 del
+`docs/limites_bloque28.md`.
+
+### Lo que no cambió
 
 El experimento de la línea de contexto de las secciones 9 a 13 sigue
 valiendo tal como está. `src/probar_linea_contexto.py` quedó fijado

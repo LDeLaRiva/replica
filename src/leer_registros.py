@@ -207,14 +207,30 @@ def revisar_etapas(registros):
 
 
 def promedios(registros):
-    """Promedia cada etapa sobre todas las corridas leídas."""
-    etapas = {}
+    """Promedia cada etapa, separando por partición.
+
+    Devuelve un diccionario de partición a etapas, y no un promedio
+    único. Promediar corridas de particiones distintas junta
+    mediciones que no se comparan, y el Bloque 28 dejó la razón
+    escrita. Entre dos corridas de la misma configuración separadas
+    por cuatro minutos, la generación de una consulta pasó de 8709 a
+    1127 milisegundos. El tiempo de generación lo mueve la API, así
+    que un promedio que mezcla configuraciones no dice nada sobre
+    ninguna de ellas.
+    """
+    por_particion = {}
     for registro in registros:
+        clave = particion_de(registro)
+        etapas = por_particion.setdefault(clave, {})
         for etapa, milisegundos in registro.get("tiempos_ms", {}).items():
             etapas.setdefault(etapa, []).append(milisegundos)
+
     return {
-        etapa: sum(valores) / len(valores)
-        for etapa, valores in etapas.items()
+        particion: {
+            etapa: (sum(valores) / len(valores), len(valores))
+            for etapa, valores in etapas.items()
+        }
+        for particion, etapas in por_particion.items()
     }
 
 
@@ -247,8 +263,18 @@ if __name__ == "__main__":
 
     medias = promedios(registros)
     if medias:
-        print("\n  Promedio por etapa, sobre todas las corridas")
-        for etapa, milisegundos in sorted(
-                medias.items(), key=lambda par: -par[1]):
-            print(f"      {etapa:<20}{milisegundos:>10.2f} ms")
+        print("\n  Promedio por etapa, separado por particion")
+        for particion in sorted(medias):
+            etapas = medias[particion]
+            cuantas = max(cantidad for _, cantidad in etapas.values())
+            print(f"\n      tope/solape {particion}, {cuantas} corridas")
+            for etapa, (milisegundos, _) in sorted(
+                    etapas.items(), key=lambda par: -par[1][0]):
+                print(f"        {etapa:<20}{milisegundos:>10.2f} ms")
+        if len(medias) > 1:
+            print("\n      No se promedian las particiones juntas. El")
+            print("      tiempo de generacion lo mueve la API, medido en")
+            print("      la seccion 4 del docs/limites_bloque28.md, asi")
+            print("      que un promedio que las mezcle no describe a")
+            print("      ninguna.")
     print()

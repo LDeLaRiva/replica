@@ -13,25 +13,39 @@ Tres cosas que esta página documenta cambiaron después, y una de las
 que deja pendientes quedó resuelta por otro camino.
 
 ```
-  la plantilla del prompt   paso de dos salidas a tres
+  la plantilla del prompt   paso de dos salidas a tres, y las
+                            tres quedaron enumeradas
   el k                      paso de 4 a 3
-  el tope del chunking      paso de 700 a 1500, con los incisos
+  el tope del chunking      paso de 700 a 1300, con los incisos
                             separados por linea en blanco
 ```
 
-**Los dos errores legales de la sección 5 ya no se producen.** El del
-artículo 40 bis D está arreglado y verificado, el modelo ahora
-escribe la condición de jornada parcial junto con la regla. El del
-aporte de casa particular no se produce porque ese fragmento ya no se
-recupera para esa consulta, que no es lo mismo que estar arreglado y
-queda dicho así en el documento del 28.
+**El error del artículo 40 bis D de la sección 5 está arreglado en la
+consulta que lo destapó, y no en todas.** En la consulta del cálculo
+el modelo escribe la condición de jornada parcial junto con la regla,
+verificado. En una consulta compuesta que se probó después, *"en qué
+consiste la indemnización por años de servicio y qué incluye"*, la
+regla vuelve a salir sin su condición en una corrida de tres.
 
-**Los diecinueve caracteres de la sección 6 dejaron de importar.** El
-artículo 40 bis D mide 933 caracteres y con el tope de 1500 cabe
-entero en un fragmento, de modo que su nota de alcance viaja siempre
-con la regla. Eso resuelve también el primer pendiente de la sección
-14, que proponía mover la nota al principio del artículo. No hizo
-falta moverla.
+El del aporte de casa particular no se produce porque ese fragmento
+ya no se recupera para esa consulta, que no es lo mismo que estar
+arreglado y queda dicho así en el documento del 28.
+
+**Los diecinueve caracteres de la sección 6 siguen importando, y
+ahora se sabe por qué.** El artículo 40 bis D mide 933 caracteres y
+cabe entero en un fragmento con cualquiera de los topes que se
+probaron, de modo que su nota de alcance **sí viaja con la regla, en
+el mismo fragmento**. La condición llega al modelo y el modelo a
+veces no la usa.
+
+Eso obliga a corregir lo que esta página decía. El primer pendiente
+de la sección 14, que proponía mover la nota al principio del
+artículo, **no quedó resuelto**. Se había dado por resuelto porque la
+nota viaja con la regla, y viajar no alcanza. La hipótesis de ahora
+es que una condición al final de un artículo se suelta más fácil que
+una al principio, y en la respuesta correcta el modelo la puso
+adelante. Vuelve a estar abierto, con esa hipótesis escrita y sin
+medir, y está en la sección 18 del `docs/limites_bloque28.md`.
 
 La sección 5 enuncia la causa de los dos errores con una frase que el
 Bloque 28 confirmó y midió.
@@ -43,6 +57,19 @@ Bloque 28 confirmó y midió.
 Lo que esta página no podía saber es cuántos casos había. El Bloque
 28 los contó, trece fragmentos empezando a media unidad y cuatro de
 ellos con una regla sin su alcance.
+
+**La frase de abstención resultó más delicada de lo que se veía.**
+Esta página dice de ella que no es decorativa, que es la pieza que
+cierra el hueco que la búsqueda por significado deja abierto por
+diseño. El Bloque 28 encontró que esa pieza se puede romper desde el
+propio prompt. Con las tres salidas explicadas en prosa, el modelo
+devolvía la tercera instrucción convertida en afirmación y después la
+frase, en vez de la frase sola. Y con la frase entre comillas,
+copiaba las comillas.
+
+Lo que lo arregló fue enumerar las tres salidas, que es estructura y
+no redacción. Las dos redacciones alternativas que se probaron se
+filtraron igual. Está en la sección 8 del `docs/limites_bloque28.md`.
 
 El resto de esta página sigue valiendo. Las distancias de la sección
 3, el análisis de la sección 4 sobre por qué la regla general queda
@@ -552,4 +579,4 @@ con ese mismo número como llave, con una comprobación al cargar de
 que todo archivo tenga sus claves y toda entrada de claves tenga su
 archivo. El texto no hay que volver a verificarlo contra la fuente,
 basta comparar los archivos nuevos contra el texto ya verificado y
-confirmar que son idénticos carácter por carácter.
+confirmar que son idénticos caracter por caracter.
