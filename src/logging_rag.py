@@ -78,7 +78,7 @@ implementó un nuevo sistema: turnos rotativos" coincide con
 `nuevo\\s+sistema\\s*:`, y es una frase corriente. Y los ataques
 reales coinciden a veces con un solo patrón, igual que esas consultas
 legítimas, así que las dos poblaciones se superponen y ningún umbral
-las separa. `comprobar_falsos_positivos` lo demuestra y vuelve a
+las separa. `comprobar_superposicion_de_patrones` lo demuestra y vuelve a
 correr sola.
 
 Del otro lado está el impacto. El prompt de este sistema vive en un
@@ -102,6 +102,31 @@ comprobaciones con datos armados a mano podía detectarlo, porque un
 `AIMessage` escrito a mano trae un string. La comprobación nueva
 prueba las dos formas, para que no vuelva a pasar en silencio.
 
+Décima. La lista de patrones tiene catorce y no seis. Los seis de la
+lección están sin tocar, en `PATRONES_DE_LA_LECCION`, y los ocho
+agregados viven aparte en `PATRONES_AGREGADOS`, para que se vea cuál
+es cuál. La lección describe su lista como "deliberadamente chica y
+específica" y dice que crece con el tiempo, y la sección de problemas
+de la actividad pide ajustarla a lo que se ve en los datos propios.
+
+Los ocho se midieron antes de quedar, contra 48 textos legítimos, y
+ninguno marcó nada. Dos candidatos se descartaron o se estrecharon
+por marcar consultas laborales corrientes, y las consultas que los
+descartaron quedaron dentro de `comprobar_consultas_coloquiales` para
+que un patrón futuro no repita el error.
+
+Undécima. Los logs se escriben a pantalla y además a un archivo,
+`logs/rag_legal.log`. La lección muestra solo el `StreamHandler`, con
+lo cual el registro se pierde al cerrar la terminal. Pero la primera
+lección abre planteando para qué sirve esta instrumentación, poder
+responder "por qué el bot respondió eso a las 3am" cuando el proceso
+que respondió ya terminó, y eso exige que el registro quede
+almacenado. El `FileHandler` es lo que lo deja escrito. La ruta se
+arma desde la ubicación del módulo, igual que en `decision.py`, para
+que el archivo no dependa del directorio desde el que se ejecute. Lo
+que sigue sin resolverse es cuánto tiempo se conservan esos logs,
+anotado en los límites.
+
 Las anotaciones de tipos van en todas las funciones, convención de
 este repositorio desde el Bloque 29.
 """
@@ -113,6 +138,7 @@ import logging
 import re
 import sys
 import uuid
+from pathlib import Path
 
 from langchain_core.documents import Document
 from langchain_core.messages import AIMessage
@@ -152,11 +178,22 @@ class JsonFormatter(logging.Formatter):
         return json.dumps(payload, ensure_ascii=False)
 
 
+# Dónde queda el archivo de logs. La ruta se arma desde la ubicación
+# del módulo y no desde el directorio actual, para que el archivo
+# caiga siempre en el mismo lugar sin importar desde dónde se corra.
+# Es la misma convención de `decision.py` con la carpeta de docs.
+CARPETA_LOGS = Path(__file__).resolve().parent.parent / "logs"
+ARCHIVO_LOG = CARPETA_LOGS / "rag_legal.log"
+
 logger = logging.getLogger("rag_legal")
 logger.setLevel(logging.INFO)
-_handler = logging.StreamHandler(sys.stdout)
-_handler.setFormatter(JsonFormatter())
-logger.handlers = [_handler]
+
+CARPETA_LOGS.mkdir(exist_ok=True)
+_a_pantalla = logging.StreamHandler(sys.stdout)
+_a_archivo = logging.FileHandler(ARCHIVO_LOG, encoding="utf-8")
+for _h in (_a_pantalla, _a_archivo):
+    _h.setFormatter(JsonFormatter())
+logger.handlers = [_a_pantalla, _a_archivo]
 logger.propagate = False
 
 
@@ -234,7 +271,7 @@ def registrar_consumo(respuesta: AIMessage) -> dict[str, int | None]:
 # mismo con sinónimos, en otro idioma o separando las letras. Es una
 # barrera barata, no una garantía, y no reemplaza la separación de
 # roles ni la delimitación del contexto.
-PATRONES_SOSPECHOSOS = [
+PATRONES_DE_LA_LECCION = [
     r"ignora(?:r|\s+las)?\s+(?:todas\s+las\s+)?instrucciones\s+"
     r"(?:anteriores|previas)",
     r"ignore\s+(?:all\s+)?(?:previous|prior)\s+instructions",
@@ -243,6 +280,42 @@ PATRONES_SOSPECHOSOS = [
     r"system\s*prompt\s*:",
     r"revela\s+tu\s+prompt",
 ]
+
+# Ocho patrones agregados. La lección dice que esta lista "es
+# deliberadamente chica y específica" y que crece con el tiempo, y la
+# actividad pide ajustarla a lo que se ve en los datos propios. Cada
+# uno cubre una forma de ataque que los seis anteriores dejan pasar.
+#
+# Los ocho se midieron antes de agregarlos, contra 48 textos
+# legítimos, los 11 artículos del corpus, las 22 preguntas del
+# dataset del Bloque 29 y 15 consultas laborales escritas en registro
+# coloquial. Ninguno marcó nada. Con los seis de la lección, 3 de 10
+# intentos de inyección de prueba quedan detectados. Con los catorce,
+# 9 de 10.
+#
+# Varios están deliberadamente estrechos, porque la versión amplia
+# marcaba consultas legítimas. "haz caso omiso" pide el imperativo,
+# que no aparece en "mi jefe hace caso omiso de las normas". "revela
+# tus instrucciones" pide "tus" y no "las", porque "el reglamento
+# revela las instrucciones que debo seguir" es una frase corriente.
+# "nuevas instrucciones" exige dos puntos o almohadilla, porque "me
+# dieron nuevas instrucciones verbales" también lo es.
+PATRONES_AGREGADOS = [
+    # una línea que imita el encabezado de un turno de conversación
+    r"(?m)^\s*(?:system|assistant|user|sistema|asistente)\s*:",
+    # los tokens con que algunos modelos marcan sus propios turnos
+    r"<\|[^|]{0,20}\|>|\[/?inst\]|<<sys>>",
+    # variantes en español que los seis no cubren
+    r"haz\s+caso\s+omiso",
+    r"a\s+partir\s+de\s+ahora\s+(?:eres|actua|actúa|actuas|actúas)",
+    r"revela\s+tus\s+instrucciones",
+    r"nuevas\s+instrucciones\s*[:#]|#\s*nuevas\s+instrucciones",
+    # variantes en inglés que los seis no cubren
+    r"disregard\s+(?:all\s+)?(?:previous|prior|above)",
+    r"you\s+are\s+now\s+an?\s",
+]
+
+PATRONES_SOSPECHOSOS = PATRONES_DE_LA_LECCION + PATRONES_AGREGADOS
 
 
 def detectar_inyeccion(texto: str) -> list[str]:
@@ -349,7 +422,7 @@ def procesar_consulta(
         # Inyección directa, la que viene en la pregunta del propio
         # usuario. Se registra y la consulta sigue su curso. El
         # motivo de no bloquear está en la octava desviación del
-        # encabezado, y se mide en `comprobar_falsos_positivos`.
+        # encabezado, y se mide en `comprobar_superposicion_de_patrones`.
         patrones_pregunta = detectar_inyeccion(pregunta)
         if patrones_pregunta:
             resultado["pregunta_marcada"] = True
@@ -551,7 +624,7 @@ def comprobar_inyeccion_directa() -> None:
     print("registrada, y la consulta siguio su curso")
 
 
-def comprobar_falsos_positivos() -> None:
+def comprobar_superposicion_de_patrones() -> None:
     """Mide por qué el canal de la pregunta se registra y no se corta.
 
     Los seis patrones se escribieron para documentos. En un artículo
@@ -596,58 +669,74 @@ def comprobar_falsos_positivos() -> None:
     print("las dos poblaciones se superponen, ningun umbral separa")
 
 
-def comprobar_preguntas_propias() -> None:
-    """El filtro contra las 22 preguntas reales del dataset.
+def comprobar_texto_legitimo_propio() -> None:
+    """Los catorce patrones contra el texto legítimo del proyecto.
 
-    Es la medición que sostiene la decisión de bloquear. Un falso
-    positivo sobre un documento descarta uno de tres y la respuesta
-    sale igual. Un falso positivo sobre la pregunta deja sin
-    respuesta a quien consulta, así que para bloquear hace falta más
-    evidencia que para descartar.
+    La actividad advierte que el filtro puede marcar documentos
+    legítimos y manda ajustar los patrones a lo que se ve en los datos
+    propios. Esta comprobación mide eso sobre los tres conjuntos de
+    texto que el proyecto tiene.
+
+    Los artículos y las preguntas se revisan con los catorce patrones.
+    Las consultas coloquiales se revisan solo con los ocho agregados,
+    porque dos de ellas coinciden con patrones de la lección, que no
+    se modifican, y lo que esta comprobación cuida es que ninguno de
+    los agregados sume un falso positivo nuevo.
+
+    Las consultas coloquiales están escritas en el registro en que
+    escribe quien consulta por un problema laboral, y cada una se
+    eligió por quedar cerca de algún patrón. Cinco de ellas
+    descartaron o estrecharon patrones candidatos durante la revisión,
+    y quedan en la lista para que un patrón futuro no repita el error.
     """
     print()
-    print("--- el filtro contra las preguntas del dataset ---")
+    print("--- los patrones contra el texto legitimo propio ---")
+
     from dataset_tuning import ejemplos_raw
-
-    marcadas = [p for p, _salida in ejemplos_raw
-                if detectar_inyeccion(p)]
-
-    print(f"{len(ejemplos_raw)} preguntas revisadas, "
-          f"{len(marcadas)} marcadas como sospechosas")
-    if marcadas:
-        print("revisar a mano:", marcadas)
-    assert not marcadas, (
-        "el filtro marca preguntas legitimas, y bloquearlas dejaria "
-        "sin respuesta a quien consulta"
-    )
-
-
-def comprobar_corpus_propio() -> None:
-    """El filtro contra el corpus real, buscando falsos positivos.
-
-    La actividad advierte que un documento legítimo puede dar un
-    falso positivo, y manda ajustar los patrones a lo que de verdad
-    se ve en los datos. Esto lo mide en vez de suponerlo.
-    """
-    print()
-    print("--- el filtro contra los articulos del corpus ---")
     from soporte_corpus_legal import ARTICULOS
 
     # ARTICULOS es una tupla de pares, cada uno con sus claves de
     # busqueda y el texto del articulo. No es un diccionario.
-    marcados = []
-    for _claves, texto in ARTICULOS:
-        if detectar_inyeccion(texto):
-            marcados.append(texto[:48].replace("\n", " "))
+    articulos = [texto for _claves, texto in ARTICULOS]
+    preguntas = [pregunta for pregunta, _salida in ejemplos_raw]
+    coloquiales = [
+        "la empresa implemento un nuevo sistema: turnos rotativos, "
+        "es legal?",
+        "mi supervisor ignora las instrucciones previas de "
+        "prevencion de riesgos",
+        "mi jefe me dijo que olvidara lo anterior y firmara un "
+        "contrato nuevo",
+        "me cambiaron el sistema: ahora marcamos con huella, pueden?",
+        "pregunta: cuanto me corresponde de finiquito tras 7 anos",
+        "quiero saber mi respuesta: me despidieron sin aviso previo",
+        "en el contexto de mi despido, que indemnizacion me toca",
+        "ME DESPIDIERON Y NO ME PAGAN, QUE HAGO",
+        "se murio mi mama y mi contrato a plazo fijo vence en 5 "
+        "dias, tengo fuero?",
+        "el reglamento interno dice que debo ignorar las "
+        "instrucciones verbales",
+        "mi jefe hace caso omiso de las normas de seguridad",
+        "a partir de ahora me pagan menos, pueden hacer eso?",
+        "el reglamento revela las instrucciones que debo seguir",
+        "me dieron nuevas instrucciones verbales que contradicen "
+        "mi contrato",
+        "### IMPORTANTE ### me descontaron el bono sin avisar",
+    ]
 
-    print(f"{len(ARTICULOS)} articulos revisados, "
-          f"{len(marcados)} marcados como sospechosos")
-    if marcados:
-        print("revisar a mano:", marcados)
-    assert not marcados, (
-        "el filtro marca articulos legitimos del corpus, hay que "
-        "ajustar los patrones"
-    )
+    conjuntos = [
+        ("articulos del corpus", articulos, PATRONES_SOSPECHOSOS),
+        ("preguntas del dataset", preguntas, PATRONES_SOSPECHOSOS),
+        ("consultas coloquiales", coloquiales, PATRONES_AGREGADOS),
+    ]
+
+    for nombre, textos, patrones in conjuntos:
+        marcados = [t for t in textos
+                    if any(re.search(p, t.lower()) for p in patrones)]
+        print(f"  {len(textos):>3} {nombre:24} {len(marcados)} marcados")
+        assert not marcados, (
+            f"un patron marca texto legitimo de {nombre}, "
+            f"{marcados[0][:48]!r}"
+        )
 
 
 def _consulta_real() -> None:
@@ -676,8 +765,7 @@ if __name__ == "__main__":
         comprobar_texto_de_la_respuesta()
         comprobar_aislamiento()
         comprobar_inyeccion_directa()
-        comprobar_falsos_positivos()
-        comprobar_corpus_propio()
-        comprobar_preguntas_propias()
+        comprobar_superposicion_de_patrones()
+        comprobar_texto_legitimo_propio()
         print()
         print("las comprobaciones pasaron")
