@@ -744,10 +744,17 @@ def _consulta_real() -> None:
 
     Necesita el índice construido y la clave en el archivo .env.
     """
+    import os
+
     from langchain_google_genai import ChatGoogleGenerativeAI
 
     print("--- 4, el flujo real contra el indice y el modelo ---")
-    modelo = ChatGoogleGenerativeAI(model="gemini-3.5-flash-lite")
+    # El nombre del modelo sale de AI_MODEL, igual que en
+    # `recuperacion.py` y en `probar_generacion.py`. Escrito a mano
+    # aqui, este archivo medirian otro modelo que el resto del
+    # proyecto sin que nadie lo notara.
+    modelo = ChatGoogleGenerativeAI(model=os.getenv("AI_MODEL"))
+    print("  modelo:", os.getenv("AI_MODEL"))
     resultado = procesar_consulta(
         "cuando termina un contrato de trabajo", modelo=modelo
     )
