@@ -41,9 +41,6 @@ guardas anteriores.
 
 Cuarta. La ruta. La actividad entrega el archivo en la raíz. Aquí
 vive en `src/`, que es donde vive el código de este repositorio.
-
-Las anotaciones de tipos van en todas las funciones, convención de
-este repositorio desde el Bloque 29.
 """
 
 import uuid
@@ -159,7 +156,7 @@ def resolver(config: dict[str, Any], aprobar: bool,
 
 
 if __name__ == "__main__":
-    print("--- 1, el camino de aprobacion ---")
+    print("*** 1, el camino de aprobacion ***")
     config_si = nueva_config("aprueba")
     resultado = app_despliegue.invoke(
         {"huella_nueva": HUELLA_ACTUAL, "aprobado": False},
@@ -179,7 +176,7 @@ if __name__ == "__main__":
     print("  estado final:", final_si)
 
     print()
-    print("--- 2, el camino de rechazo, con otro thread_id ---")
+    print("*** 2, el camino de rechazo, con otro thread_id ***")
     config_no = nueva_config("rechaza")
     app_despliegue.invoke(
         {"huella_nueva": HUELLA_ACTUAL, "aprobado": False},
@@ -190,7 +187,7 @@ if __name__ == "__main__":
     print("  estado final:", final_no)
 
     print()
-    print("--- 3, reanudar un despliegue ya resuelto ---")
+    print("*** 3, reanudar un despliegue ya resuelto ***")
     try:
         resolver(config_si, True, HUELLA_ACTUAL)
     except ValueError as error:
@@ -201,7 +198,7 @@ if __name__ == "__main__":
         )
 
     print()
-    print("--- 4, aprobar una version distinta de la revisada ---")
+    print("*** 4, aprobar una version distinta de la revisada ***")
     config_otra = nueva_config("cambiada")
     app_despliegue.invoke(
         {"huella_nueva": HUELLA_ACTUAL, "aprobado": False},

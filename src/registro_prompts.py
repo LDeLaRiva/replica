@@ -44,8 +44,15 @@ pueda nombrar un modelo distinto del que de verdad corre.
 Quinta. La ruta. La actividad entrega el archivo en la raíz. Aquí vive
 en `src/`, que es donde vive el código de este repositorio.
 
-Las anotaciones de tipos van en todas las funciones, convención de
-este repositorio desde el Bloque 29.
+Sexta. La fecha de cada versión va escrita y no se calcula con
+`date.today()`. La primera versión de este archivo la calculaba, de
+modo que las dos versiones mostraban el día en que se ejecutaba el
+registro y no el día en que cada una empezó a correr. Un registro de
+versiones cuyo campo de fecha dice siempre hoy no registra nada. La
+fecha de la v1 es la del commit que trajo `src/recuperacion.py` al
+repositorio, y la de la v2 sale de
+`src/registros_latencia_costo.jsonl`, donde las corridas del 17 de
+noviembre son de la plantilla anterior y las del 18 de la actual.
 """
 
 import difflib
@@ -91,7 +98,8 @@ class RegistroDePrompts:
         self.versiones: list[dict[str, str]] = []
 
     def registrar(self, nombre: str, texto: str, autor: str,
-                  nota: str, modelo: str) -> dict[str, str]:
+                  nota: str, modelo: str,
+                  fecha: str | None = None) -> dict[str, str]:
         """Agrega una versión y la devuelve.
 
         El modelo va en el registro porque un prompt ajustado contra
@@ -99,13 +107,18 @@ class RegistroDePrompts:
         "versionar el prompt sin registrar contra qué modelo se
         validó pierde información relevante para el día que cambie
         el modelo".
+
+        La fecha entra por parámetro porque es la del día en que
+        esa versión empezó a correr, y no la del día en que se
+        ejecuta este archivo. Sin ella, las dos versiones dirían
+        hoy y el registro no registraría nada.
         """
         version = {
             "nombre": nombre,
             "huella": huella_prompt(texto),
             "texto": texto,
             "autor": autor,
-            "fecha": str(date.today()),
+            "fecha": fecha or str(date.today()),
             "modelo": modelo,
             "nota": nota,
         }
@@ -118,7 +131,7 @@ class RegistroDePrompts:
         return candidatas[-1] if candidatas else None
 
 
-# --- Las dos versiones reales de este proyecto ---------------------
+# *** Las dos versiones reales de este proyecto ***
 
 # La plantilla que este proyecto usó hasta el Bloque 28. Daba las tres
 # salidas en párrafos sueltos, sin numerar, y envolvía la frase de
@@ -145,6 +158,13 @@ Pregunta: {pregunta}
 Respuesta:"""
 
 
+# La fecha en que cada version empezo a correr, no la de hoy.
+# La v1 es la del commit que trajo recuperacion.py al repositorio.
+# La v2 sale del registros_latencia_costo.jsonl, cuyas corridas del
+# 17 son de la plantilla anterior y las del 18 de la actual.
+FECHA_V1 = "2026-11-13"
+FECHA_V2 = "2026-11-18"
+
 registro = RegistroDePrompts()
 
 # El modelo contra el que se validó cada versión. Sale de la misma
@@ -159,6 +179,7 @@ registro.registrar(
     "Lorena De La Riva",
     "version original, las tres salidas en parrafos sin numerar",
     MODELO,
+    fecha=FECHA_V1,
 )
 registro.registrar(
     NOMBRE_DEL_PROMPT,
@@ -168,11 +189,12 @@ registro.registrar(
     "abstencion, porque la tercera salida se filtraba a la respuesta "
     "(Bloque 28)",
     MODELO,
+    fecha=FECHA_V2,
 )
 
 
 if __name__ == "__main__":
-    print("--- las versiones registradas ---")
+    print("*** las versiones registradas ***")
     for v in registro.versiones:
         print(v["huella"], "-", v["nota"])
         print(f"   {v['autor']}, {v['fecha']}, validada contra "
@@ -187,17 +209,17 @@ if __name__ == "__main__":
     print("ultima version activa:", ultima["huella"])
 
     print()
-    print("--- el diff entre las dos ---")
+    print("*** el diff entre las dos ***")
     for linea in diff_prompts(v1["texto"], v2["texto"]):
         print(linea)
 
-    # --- La comprobacion que le da sentido al registro -------------
+    # *** La comprobacion que le da sentido al registro ***
     #
     # Si alguien edita PROMPT_TEMPLATE y no registra la version
     # nueva, el registro quedaria mintiendo sin avisar. Esto lo
     # detecta.
     print()
-    print("--- el registro contra el prompt que corre hoy ---")
+    print("*** el registro contra el prompt que corre hoy ***")
     viva = huella_prompt(PROMPT_TEMPLATE)
     print("huella del prompt vivo   ", viva)
     print("huella de la ultima      ", ultima["huella"])

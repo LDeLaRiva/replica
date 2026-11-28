@@ -31,9 +31,6 @@ sensibilidad manda hacer con las filas al límite.
 
 Tercera. La ruta. La actividad entrega el archivo en la raíz. Aquí
 vive en `src/`, que es donde vive el código de este repositorio.
-
-Las anotaciones de tipos van en todas las funciones, convención de
-este repositorio desde el Bloque 29.
 """
 
 
@@ -75,7 +72,7 @@ def esta_en_el_limite(probabilidad: int, impacto: int) -> bool:
     return False
 
 
-# --- Los riesgos de este proyecto ----------------------------------
+# *** Los riesgos de este proyecto ***
 
 mis_riesgos: list[dict[str, object]] = [
 
@@ -110,12 +107,19 @@ mis_riesgos: list[dict[str, object]] = [
      "probabilidad": 3,
      "impacto": 4,
      "evidencia": "verificado en el Bloque 31, no hay SystemMessage "
-                  "ni HumanMessage en recuperacion.py, y la fuga de "
-                  "vocabulario interno medida en 4 de 20 respuestas "
-                  "es ese limite difuso apareciendo",
+                  "ni HumanMessage en recuperacion.py. La fuga de "
+                  "vocabulario interno se midio en 4 de 20 "
+                  "respuestas (Bloque 28) y se volvio a medir en el "
+                  "Gate 2 con un detector reproducible, 6 de 12 en "
+                  "la consulta del calculo sobre doce corridas",
      "mitigacion": "Filtro de catorce patrones en logging_rag.py "
-                   "(Bloque 31). Las capas de separacion de roles y "
-                   "delimitacion del contexto siguen pendientes",
+                   "(Bloque 31). La separacion de roles se midio en "
+                   "el Gate 2, 120 generaciones en dos brazos. "
+                   "Empeoro cuatro medidas, mejoro una y empato "
+                   "una, y la decisiva es la abstencion "
+                   "equivocada de la consulta del acoso, que subio "
+                   "de 2 de 12 a 12 de 12, asi que no se adopto. "
+                   "La delimitacion del contexto sigue parcial",
      "supervision": "Aprobar a mano cualquier cambio al prompt "
                     "despues de medir 20 respuestas, que es el "
                     "grafo de grafo_supervision.py"},
@@ -136,11 +140,17 @@ mis_riesgos: list[dict[str, object]] = [
                "guardado en los logs",
      "probabilidad": 1,
      "impacto": 5,
-     "evidencia": "constatado en el Bloque 31, los logs guardan "
-                  "longitud y huella y nunca el texto, y la "
-                  "comprobacion del archivo lo verifica",
+     "evidencia": "constatado en el Bloque 31, el logging que "
+                  "atiende al usuario guarda longitud y huella y "
+                  "nunca el texto, y la comprobacion del archivo "
+                  "lo verifica. El registro de latencia del "
+                  "Bloque 28 si guarda la pregunta en texto, y "
+                  "corre solo sobre el conjunto de evaluacion, "
+                  "fuera del camino de produccion",
      "mitigacion": "Registrar huella y longitud en vez de contenido "
-                   "(Bloque 31)",
+                   "en logging_rag.py (Bloque 31), que es el unico "
+                   "que ve lo que escribe el usuario. "
+                   "servicio_rag.py no importa registro_rag.py",
      "supervision": ""},
 
     {"riesgo": "Inyeccion de prompt via un documento del corpus",
@@ -165,7 +175,7 @@ for r in mis_riesgos:
 
 
 if __name__ == "__main__":
-    print("--- la matriz, ordenada por severidad ---")
+    print("*** la matriz, ordenada por severidad ***")
     for r in sorted(mis_riesgos, key=lambda x: -x["puntaje"]):
         marca = "[AL LIMITE]" if r["al_limite"] else ""
         print(f"{r['categoria']:8} ({r['puntaje']:2}) "
@@ -173,19 +183,57 @@ if __name__ == "__main__":
               f"{r['riesgo']} {marca}")
 
     print()
-    print("--- cuales conviene revisar con otra persona ---")
+    print("*** cuales conviene revisar con otra persona ***")
     for r in mis_riesgos:
         if r["al_limite"]:
             print("  ", r["riesgo"])
 
-    # Las seis filas salen marcadas, y eso no es un fallo del
-    # chequeo. Los cortes en 4, 9 y 15 estan juntos dentro del rango
-    # de 1 a 25, asi que la mayoria de los puntajes intermedios
-    # quedan a un punto de alguno. El caso de contraste confirma que
-    # la funcion si distingue cuando hay margen.
+    # Las seis filas salen al limite, y es el resultado que la
+    # leccion anticipa. Sus cinco ejemplos salen los cinco tambien, y
+    # lo explica porque los cortes 4, 9 y 15 quedan juntos frente al
+    # rango de 1 a 25, de modo que la mayoria de los puntajes
+    # intermedios cae cerca de alguno.
+    #
+    # Lo que se agrega es el conteo exacto, que la leccion no da. Se
+    # cuenta en vivo y no escrito a mano, para que siga el valor de
+    # los cortes si alguna vez cambian.
+    #
+    # La lectura que la leccion da de esto no es arreglar el chequeo,
+    # es tratar la categoria de una fila marcada como una
+    # aproximacion y revisarla con otra persona antes de cerrarla.
+    #
+    # Todo lo que se imprime abajo sale de este conteo, incluida la
+    # conclusion. Escrita a mano diria lo mismo aunque los cortes
+    # cambiaran, que es el defecto que este proyecto evita en todas
+    # sus mediciones.
+    celdas = [(p, i) for p in range(1, 6) for i in range(1, 6)]
+    al_limite = [c for c in celdas if esta_en_el_limite(*c)]
+    sueltas = [c for c in celdas if c not in al_limite]
+    proporcion = len(al_limite) / len(celdas)
+
     print()
-    print("--- el caso de contraste, para ver que el chequeo "
-          "distingue ---")
+    print(f"  {len(al_limite)} de las {len(celdas)} celdas del tablero "
+          f"caen al limite, el {proporcion:.0%}.")
+    if proporcion >= 0.75:
+        print("  La marca separa poco, porque casi cualquier celda "
+              "toca un borde.")
+    elif proporcion >= 0.40:
+        print("  La marca separa a medias.")
+    else:
+        print("  La marca separa bien, la mayoria de las celdas "
+              "tiene margen.")
+    if sueltas:
+        print("  Las que no lo estan son "
+              + ", ".join(f"p{a} x i{b}" for a, b in sueltas) + ".")
+    else:
+        print("  No hay ninguna celda con margen, asi que la marca "
+              "no distingue nada.")
+
+    # El caso de contraste que la leccion usa, para confirmar que la
+    # funcion distingue cuando hay margen y no marca todo.
+    print()
+    print("*** el caso de contraste, para ver que el chequeo "
+          "distingue ***")
     p, i = 1, 1
     print(f"  probabilidad {p} x impacto {i} = "
           f"{puntaje_riesgo(p, i)}, {categoria_riesgo(puntaje_riesgo(p, i))}, "
@@ -196,16 +244,16 @@ if __name__ == "__main__":
     )
 
     print()
-    print("--- el punto de supervision de los ALTO y CRITICO ---")
+    print("*** el punto de supervision de los ALTO y CRITICO ***")
     for r in mis_riesgos:
         if r["categoria"] in ("ALTO", "CRITICO"):
             print(f"  {r['categoria']} - {r['riesgo']}")
             print(f"     -> {r['supervision']}")
 
-    # --- Las tres exigencias de la actividad, comprobadas ----------
+    # *** Las tres exigencias de la actividad, comprobadas ***
 
     print()
-    print("--- las exigencias de la actividad ---")
+    print("*** las exigencias de la actividad ***")
 
     assert len(mis_riesgos) >= 5, "la actividad pide cinco como minimo"
     print(f"  {len(mis_riesgos)} riesgos, el minimo son 5")
