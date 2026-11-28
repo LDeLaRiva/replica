@@ -354,3 +354,13 @@ patrón 3, respuesta sin respaldo                1 de 12
 ```
 
 El archivo con los datos es `src/trazas_agente.jsonl`.
+
+**Una advertencia para quien lo abra y cuente.** Ese archivo tiene
+hoy veinticuatro líneas y no doce. Las doce de esta medición son las
+del 10 de noviembre. Las otras doce son del 11, de las dos corridas
+del Bloque 24 que están en la sección 10 del
+`docs/limites_bloque24.md`. El archivo se escribe en cada turno y
+nada lo vacía, de modo que crece con cada corrida del agente. Las
+dos decisiones de aprobación que esta página reporta son las de las
+00:52:38 y las 00:53:18, y las otras dos del archivo son del día
+siguiente.

@@ -1,4 +1,4 @@
-# Decisión de personalización
+# Decisión de personalización (Bloque 30)
 
 ## 1. El problema
 

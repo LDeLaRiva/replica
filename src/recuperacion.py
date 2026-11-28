@@ -30,21 +30,32 @@ se reconecta sin nombrarla porque su índice quedó en la colección por
 defecto. Este no, y reconectarse sin nombrarla devolvería una
 colección vacía y ninguna advertencia.
 
-Por qué la cita lleva el archivo y el artículo
+Por qué la cita lleva la norma, el artículo y el archivo
 
 La actividad pide que cada valor del diccionario de citas sea un
-nombre de archivo reconocible del proyecto y nunca la palabra
-desconocida.
+nombre reconocible del proyecto y nunca la palabra desconocida.
 
-Este corpus está entero en un archivo, así que el nombre por sí solo
-sería igual en todos los fragmentos y no distinguiría
-nada. El artículo sí identifica el origen, y además es lo único
-verificable fuera de este repositorio. Por eso van los dos.
+La cita nombra tres cosas y cada una sirve a un lector distinto. La
+norma, el Código del Trabajo, es la fuente y es lo que permite ir a
+contrastar el texto fuera de este repositorio. El artículo es lo que
+identifica el fragmento, porque este corpus está entero en un
+archivo y el nombre del archivo por sí solo sería igual en todos. Y
+el archivo dice dónde vive ese texto dentro del repositorio.
+
+La primera versión de esta cita llevaba solo el archivo y el
+artículo, y se leía como un script y no como una fuente legal. El
+criterio es el que dio el profesor en clase, que una persona que
+quiera comprobar que la información no está inventada pueda ir a
+verificarla en la documentación.
 
 El nombre del archivo no se escribe a mano, se toma del módulo que
 guarda el corpus. Escrito a mano quedaría viejo al renombrar ese
 archivo, y las citas nombrarían algo que no existe sin que nada
 avise.
+
+La norma sí va escrita, porque los once artículos salen del mismo
+código y no hay de dónde deducirla. Lo que varía fragmento a
+fragmento es el artículo, que sale del metadato.
 
 Cuando falta el artículo la cita dice desconocida y no se arma el
 texto, porque esa palabra es la alarma que la actividad quiere ver y
@@ -197,6 +208,29 @@ Importar indexar_corpus.py ya lo llama. Se deja igual porque depender
 de un efecto colateral de un import para algo tan central como la
 clave lo vuelve invisible para quien lee este archivo, y llamarlo dos
 veces no hace daño.
+
+Por qué la cita acepta un marcador subnumerado
+
+El modelo a veces escribe [3.1] en vez de [3], aunque la instrucción
+pide el número del bloque. En la corrida del 26 de noviembre de 2026
+escribió [1], [2], [3.1], [3.2] y [3.3] en la misma respuesta.
+
+Con el grupo de caracteres sin el punto, esos tres marcadores no
+coincidían con nada. Tres afirmaciones de la respuesta quedaban sin
+fuente que las respaldara, la lista mostraba dos fuentes y el conteo
+de citas inválidas salía en cero, porque el programa no las veía. El
+criterio no compensable del Gate 2 pide que cada respuesta cite la
+fuente que la respalda, así que no era una falla de presentación.
+
+El punto entró al grupo y cada marcador se resuelve al número entero
+de antes del punto, que es el bloque que el modelo estaba citando. Las
+letras siguen afuera, de modo que las notas del corpus siguen sin
+entrar. Un decimal que no sea una cita, como [90.5], se resuelve a 90
+y se nombra cita inválida si ese bloque no está en el contexto.
+
+No se tocó la plantilla. La huella del prompt sigue en faa337bde6a2,
+comprobada después del cambio, que es la que asertan
+src/registro_prompts.py y src/grafo_supervision.py.
 """
 
 import os
@@ -220,6 +254,11 @@ load_dotenv()
 # artículo en cada cita. Se toma del módulo y no se escribe a mano,
 # para que nunca nombre un archivo que ya no existe.
 ARCHIVO_CORPUS = os.path.basename(soporte_corpus_legal.__file__)
+
+# La norma de la que sale todo el corpus. Va escrita porque los once
+# artículos son del mismo código y no hay de dónde deducirla, y es
+# lo que permite contrastar una respuesta fuera de este repositorio.
+FUENTE_LEGAL = "Código del Trabajo de Chile"
 
 # Cuántos fragmentos se recuperan por pregunta. Es el k del proyecto
 # y lo importan los demás módulos, para que no quede escrito dos
@@ -261,10 +300,13 @@ Pregunta: {pregunta}
 Respuesta:"""
 
 # Los grupos entre corchetes que el modelo escribe al citar, y los
-# números de cada grupo. Exigir que el grupo entero sea de dígitos y
-# separadores es lo que deja afuera a las notas del corpus.
-CITA = re.compile(r"\[([\d\s,;]+)\]")
+# marcadores de cada grupo. Exigir que el grupo entero sea de dígitos
+# y separadores es lo que deja afuera a las notas del corpus. El punto
+# entra porque el modelo a veces subnumera, [3.1] en vez de [3], y sin
+# el punto ese marcador queda invisible. Las letras siguen afuera.
+CITA = re.compile(r"\[([\d\s,.;]+)\]")
 NUMERO = re.compile(r"\d+")
+MARCADOR = re.compile(r"\d+(?:\.\d+)*")
 
 
 def formatear_contexto(chunks_recuperados):
@@ -285,7 +327,8 @@ def formatear_contexto(chunks_recuperados):
 
     for i, doc in enumerate(chunks_recuperados, start=1):
         articulo = doc.metadata.get("articulo")
-        citas[i] = (f"{ARCHIVO_CORPUS} · art. {articulo}"
+        citas[i] = (f"{FUENTE_LEGAL}, art. {articulo} "
+                    f"({ARCHIVO_CORPUS})"
                     if articulo else "desconocida")
         lineas.append(f"[{i}] {doc.page_content}")
 
@@ -354,13 +397,21 @@ def fuentes_citadas(respuesta, citas):
     Lee tanto las citas de un número, [1], como las de varios en un
     mismo corchete, [1, 4].
 
+    Lee también las subnumeradas, [3.1], que el modelo escribe a
+    veces aunque la instrucción pida [3]. Se resuelven al número
+    entero de antes del punto, que es el bloque que el modelo estaba
+    citando. Sin esto el marcador no coincide con ningún corchete
+    reconocido y la afirmación queda sin fuente que la respalde, que
+    es el criterio no compensable del Gate 2.
+
     Un número que no esté en el diccionario se nombra como cita
     inválida, porque en una respuesta legal sería una fuente
     inventada.
     """
     numeros = []
     for grupo in CITA.findall(respuesta):
-        numeros.extend(int(n) for n in NUMERO.findall(grupo))
+        for marcador in MARCADOR.findall(grupo):
+            numeros.append(int(marcador.split(".")[0]))
     numeros = tuple(dict.fromkeys(numeros))
 
     return tuple(

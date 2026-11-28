@@ -170,7 +170,11 @@ def generar_esqueleto_decision(
     """
     empate = len(ganadoras) > 1
     lineas: list[str] = []
-    lineas.append("# Decisión de personalización")
+    # El numero de bloque va en la linea del titulo, entre
+    # parentesis, que es la convencion de este repositorio. Va aqui
+    # y no en el .md porque este script lo sobrescribe en cada
+    # corrida, y puesto alla se perderia sin que nadie se entere.
+    lineas.append("# Decisión de personalización (Bloque 30)")
     lineas.append("")
     lineas.append("## 1. El problema")
     lineas.append("")

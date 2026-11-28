@@ -102,6 +102,30 @@ La lección advierte que este archivo no debe mezclar corridas sin
 poder distinguirlas, porque es para comparar en el futuro. Con el
 tope y el solape adentro, cada línea dice con qué configuración se
 midió y la comparación se puede hacer años después.
+
+Qué guarda el campo pregunta, y por qué no es el criterio 3 del Gate
+
+Este registro guarda la pregunta en texto, y el logging del Bloque 31
+guarda de la pregunta del usuario solo su longitud y su huella. Son
+dos políticas distintas sobre dos cosas distintas, y conviene dejarlo
+dicho donde alguien lo va a preguntar.
+
+Las preguntas que llegan a este archivo son el conjunto de evaluación
+del Bloque 27. `tres_preguntas` las elige de `CASOS` por su largo, y
+el bloque de abajo las corre. Las escribió la autora del proyecto para
+medir, y ninguna la escribió un trabajador.
+
+Este archivo tampoco está en el camino de producción.
+`servicio_rag.py` no lo importa, de modo que una consulta atendida por
+el servicio nunca escribe una línea en este archivo. Quien atiende al
+usuario es `logging_rag.py`, y ese guarda huella y longitud.
+
+El criterio no compensable del Gate 2 pide que no haya PII ni
+contenido crudo sensible en los logs en texto plano, y lo ancla al
+Bloque 31. La verificación que la plataforma da para ese criterio
+revisa la carpeta `logs/`, y este archivo vive en `src/`. Las pruebas
+`test_3` y `test_3b` de `test_gate2.py` cubren el criterio sobre el
+logging que sí atiende al usuario.
 """
 
 import json
